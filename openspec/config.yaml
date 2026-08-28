@@ -2,12 +2,12 @@ schema: spec-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Read CONTEXT.md for stable project vocabulary.
+  Read docs/agents/combined-workflow.md for the OpenSpec/Matt Skills boundary,
+  artifact mapping, lifecycle gates, and conflict protocol.
+  OpenSpec is the formal Change control plane; Matt Pocock Skills are the
+  method layer and must not create parallel specifications or change state.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
