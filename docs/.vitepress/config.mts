@@ -6,6 +6,7 @@ const activeItems = [
 ];
 
 const archivedItems = [
+  { text: "setup-sqlite-repository-foundation", link: "/changes/archive/2026-09-08-setup-sqlite-repository-foundation/" },
   { text: "establish-project-foundation", link: "/changes/archive/2026-09-08-establish-project-foundation/" },
   { text: "define-api-and-sse-contracts", link: "/changes/archive/2026-09-08-define-api-and-sse-contracts/" },
   { text: "repair-wiki-sync-workflow", link: "/changes/archive/2026-08-28-repair-wiki-sync-workflow/" },

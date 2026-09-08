@@ -17,6 +17,8 @@ import sqlite3
 from pathlib import Path
 
 import fastapi
+import aiosqlite
+import alembic.command
 import httpx
 import sqlalchemy
 import sqlalchemy.ext.asyncio
@@ -28,16 +30,22 @@ def forbidden(*args, **kwargs):
 Path.open = forbidden
 Path.read_text = forbidden
 Path.write_text = forbidden
+Path.mkdir = forbidden
 builtins.open = forbidden
 socket.create_connection = forbidden
 socket.socket.connect = forbidden
 socket.socket.connect_ex = forbidden
 sqlite3.connect = forbidden
+aiosqlite.connect = forbidden
 fastapi.FastAPI = forbidden
 httpx.Client = forbidden
 httpx.AsyncClient = forbidden
 sqlalchemy.create_engine = forbidden
 sqlalchemy.ext.asyncio.create_async_engine = forbidden
+sqlalchemy.ext.asyncio.async_sessionmaker = forbidden
+sqlalchemy.ext.asyncio.AsyncSession = forbidden
+alembic.command.upgrade = forbidden
+alembic.command.downgrade = forbidden
 uvicorn.run = forbidden
 
 for probe in (
