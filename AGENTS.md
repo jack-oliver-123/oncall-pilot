@@ -82,6 +82,13 @@ CI 使用 `npm ci` 和 `uv sync --frozen`。失败、未运行、provider failur
 - 浏览器只允许接收 `frontend.title`、`frontend.apiBaseUrl` 和明确 public 的 analytics key；秘密字段默认不公开。
 - Agent 不直接连接生产数据库。未来 tenant-scoped interface 必须显式接收 tenant ID，禁止默认 tenant、全局 tenant 和跨 tenant 查询。
 
+## 资源归属边界
+
+- chat、knowledge、index jobs、vector、MCP、AIOps、evidence、reports、cases、feedback、audit、background jobs 的受保护访问统一从已验证 `CurrentUser` 派生 `OwnerScope`；本地 `tenant_id == user_id`。
+- 所有受保护 Repository 方法必须显式接收无默认值的 keyword-only `owner_user_id`，空 scope 在 I/O 前失败；SQL 同时限定 owner、资源 ID 和父子关系。禁止先按资源 ID 全局查询，再在 service 层检查 owner。
+- 受保护父资源不存在或越权统一 `AUTH_FORBIDDEN` 403，不披露存在性或资源细节；子资源 ID 不能绕过 owner/父关系。登出仅撤销当前认证并清客户端可见状态，保留持久数据。
+- 新增 Repository、受保护 path、向量或后台任务时，先读取 [持久化架构中的归属接入约定](apps/backend/persistence.md#强制归属与租户上下文)，复用参数失败及双用户合同测试。向量保留 `tenantId`/`ownerUserId`，搜索只用 tenant 与授权 KB，空 KB 在连接前短路，文档删除必须带 tenant、KB、document 三个维度。
+
 ## MCP 与基础设施
 
 - unit test 可使用 fake adapter；声明 MCP 功能验收通过时，必须额外连接主机上的官方真实 MCP Server，并把 mock、local 和 live evidence 分开报告。

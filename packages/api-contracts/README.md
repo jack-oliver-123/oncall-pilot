@@ -1,6 +1,6 @@
 # On-call Pilot API contracts
 
-此 workspace 是 HTTP response、错误目录、OpenAPI path 和 SSE event 的单一事实来源。源文件是 `openapi/foundation.openapi.json`（OpenAPI 3.1），当前只登记 foundation 的 `GET /health`。共享入口同时提供 `HealthResponse`、`ApiError`、`SseEvent`、operation 表和运行时 `parseContract`。
+此 workspace 是 HTTP response、错误目录、OpenAPI path 和 SSE event 的单一事实来源。源文件是 `openapi/foundation.openapi.json`（OpenAPI 3.1），当前登记 `GET /health` 和用户认证接口。共享入口同时提供 `HealthResponse`、`ApiError`、`SseEvent`、operation 表和运行时 `parseContract`。
 
 ## 合同布局与扩展顺序
 
@@ -19,7 +19,17 @@ SSE 包含 content.delta、reasoning.delta、tool.call、reference.source、task
 
 前端 `apiClient` 根据 operation 返回 typed data；`sseClient` 返回共享事件的异步迭代器。两者通过参数注入 fetch/request ID/bearer/signal，不读取本机秘密。网络异常和 ProtocolError 不伪装成 ApiClientError。SSE parser 支持 UTF-8 分块、三类换行与多行 data，EOF 不派发未结束 frame；单帧缓存上限为 1 MiB UTF-16 字符单位，不自动重连。当前尚无业务 SSE endpoint。
 
-## 验证
+## 受保护操作接入
+
+OpenAPI 的 `x-protected-operation` 是所有未来受保护 path 的模板；TypeScript 导出 `protectedOperation`，Python 导出 `PROTECTED_OPERATION`。它包含 `security: [{BearerAuth: []}]` 和指向 `components.responses.Unauthenticated` / `Forbidden` 的 401/403 引用，两者使用既有 `ApiFailure`。401 包含 `WWW-Authenticate: Bearer`，403 不暴露资源存在性或归属细节。`/auth/me` 和 `/auth/logout` 已复用。
+
+新增 path 时将模板的 security 和 responses 合入 operation，补充该操作的成功及其他错误响应，运行 `npm run contracts:generate`。生成器拒绝未声明完整 bearer/共享 401/403 的操作。只有 `x-public-operations` 显式登记的操作可公开，目前为 health、register、login；公开例外变更必须在对应 Change 中说明，不能为绕过门禁随意扩大。
+
+后端通过 `auth.api.protected_router()` 定义受保护路由，并用 `current_user` 取得认证派生身份。工厂同时装配认证 dependency 和共享失败响应。Repository 显式接收 `owner_user_id`，具体边界见后端 persistence.md。合同只登记真实 endpoint，不能添加未来占位 path；测试专用探针不进入生产 app。
+
+实际路由合同门禁遍历 FastAPI 的 `iter_route_contexts`，覆盖 include router、隐藏 endpoint、重复 path 和带前缀路径，再对比展开后的响应引用；不能仅依赖 OpenAPI 页面里的安全图标作为认证证据。
+
+## 验证命令
 
 从仓库根运行：
 

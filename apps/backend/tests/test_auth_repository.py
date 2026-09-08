@@ -19,23 +19,33 @@ async def test_records_owner_safety_and_revocation(database: Database) -> None:
         repo = AuthRepository(transaction)
         await repo.add_user(user)
         await repo.add_user(other)
-        await repo.add_session(record)
+        await repo.add_session(record, owner_user_id=user.id)
     async with database.transaction() as transaction:
         repo = AuthRepository(transaction)
         assert await repo.find_user_by_email(user.email) == user
         assert await repo.resolve_token_hash(record.token_hash) == record
-        assert await repo.get_session(other.id, record.id) is None
-        assert not await repo.touch_session(other.id, record.id, now + timedelta(seconds=1))
-        assert not await repo.revoke_session(other.id, record.id, now + timedelta(seconds=1))
-        assert await repo.get_session(user.id, record.id) == record
-        assert await repo.touch_session(user.id, record.id, now + timedelta(seconds=2))
+        assert await repo.get_session(record.id, owner_user_id=other.id) is None
+        assert not await repo.touch_session(
+            record.id, now + timedelta(seconds=1), owner_user_id=other.id
+        )
+        assert not await repo.revoke_session(
+            record.id, now + timedelta(seconds=1), owner_user_id=other.id
+        )
+        assert await repo.get_session(record.id, owner_user_id=user.id) == record
+        assert await repo.touch_session(
+            record.id, now + timedelta(seconds=2), owner_user_id=user.id
+        )
     async with database.transaction() as transaction:
         repo = AuthRepository(transaction)
-        assert await repo.get_session(user.id, record.id) == replace(
+        assert await repo.get_session(record.id, owner_user_id=user.id) == replace(
             record, last_seen_at=now + timedelta(seconds=2)
         )
-        assert await repo.revoke_session(user.id, record.id, now + timedelta(seconds=3))
-        assert not await repo.touch_session(user.id, record.id, now + timedelta(seconds=4))
+        assert await repo.revoke_session(
+            record.id, now + timedelta(seconds=3), owner_user_id=user.id
+        )
+        assert not await repo.touch_session(
+            record.id, now + timedelta(seconds=4), owner_user_id=user.id
+        )
         assert await repo.resolve_token_hash(record.token_hash) is None
         assert await repo.find_user_by_email(user.email) == user
     with pytest.raises(FrozenInstanceError):
@@ -57,14 +67,18 @@ async def test_constraints_and_rollback(database: Database) -> None:
     for invalid in [replace(record, user_id=new_id()), replace(record, token_hash="raw-token")]:
         with pytest.raises(IntegrityError):
             async with database.transaction() as transaction:
-                await AuthRepository(transaction).add_session(invalid)
+                await AuthRepository(transaction).add_session(
+                    invalid, owner_user_id=invalid.user_id
+                )
     with pytest.raises(RuntimeError):
         async with database.transaction() as transaction:
-            await AuthRepository(transaction).add_session(record)
+            await AuthRepository(transaction).add_session(record, owner_user_id=user.id)
             raise RuntimeError("取消工作单元")
     async with database.transaction() as transaction:
         assert await AuthRepository(transaction).resolve_token_hash(record.token_hash) is None
-        await AuthRepository(transaction).add_session(record)
+        await AuthRepository(transaction).add_session(record, owner_user_id=user.id)
     with pytest.raises(IntegrityError):
         async with database.transaction() as transaction:
-            await AuthRepository(transaction).add_session(replace(record, id=new_id()))
+            await AuthRepository(transaction).add_session(
+                replace(record, id=new_id()), owner_user_id=user.id
+            )

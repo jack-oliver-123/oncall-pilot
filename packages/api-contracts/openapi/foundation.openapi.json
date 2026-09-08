@@ -436,22 +436,10 @@
             }
           },
           "401": {
-            "description": "统一错误",
-            "headers": {
-              "X-Request-ID": {
-                "description": "请求关联标识",
-                "schema": {
-                  "$ref": "#/components/schemas/RequestId"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiFailure"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "security": [
@@ -553,22 +541,10 @@
             }
           },
           "401": {
-            "description": "统一错误",
-            "headers": {
-              "X-Request-ID": {
-                "description": "请求关联标识",
-                "schema": {
-                  "$ref": "#/components/schemas/RequestId"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiFailure"
-                }
-              }
-            }
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         },
         "security": [
@@ -1741,6 +1717,70 @@
         "type": "http",
         "scheme": "bearer"
       }
+    },
+    "responses": {
+      "Unauthenticated": {
+        "description": "缺少有效认证会话。",
+        "headers": {
+          "X-Request-ID": {
+            "description": "请求关联标识",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          },
+          "WWW-Authenticate": {
+            "description": "HTTP bearer 认证挑战。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiFailure"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "受保护资源不可访问或不存在；不披露资源细节。",
+        "headers": {
+          "X-Request-ID": {
+            "description": "请求关联标识",
+            "schema": {
+              "$ref": "#/components/schemas/RequestId"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiFailure"
+            }
+          }
+        }
+      }
     }
-  }
+  },
+  "x-protected-operation": {
+    "security": [
+      {
+        "BearerAuth": []
+      }
+    ],
+    "responses": {
+      "401": {
+        "$ref": "#/components/responses/Unauthenticated"
+      },
+      "403": {
+        "$ref": "#/components/responses/Forbidden"
+      }
+    }
+  },
+  "x-public-operations": [
+    "getHealth",
+    "registerUser",
+    "loginUser"
+  ]
 }

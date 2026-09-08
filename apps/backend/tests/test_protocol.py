@@ -7,8 +7,8 @@ from typing import Any, Protocol, cast
 
 import httpx
 import pytest
-from fastapi import FastAPI, HTTPException
-from fastapi.routing import APIRoute
+from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi.routing import APIRoute, iter_route_contexts
 from jsonschema import Draft202012Validator, FormatChecker
 from pydantic import BaseModel, JsonValue, TypeAdapter, ValidationError
 from starlette.routing import Route
@@ -262,7 +262,8 @@ def assert_openapi_matches(app: FastAPI) -> None:
         (app.redoc_url, "redoc_html"),
     }
     routes: list[tuple[str, str]] = []
-    for route in app.routes:
+    for context in iter_route_contexts(app.routes):
+        route = context.original_route
         if (
             isinstance(route, Route)
             and not isinstance(route, APIRoute)
@@ -273,8 +274,9 @@ def assert_openapi_matches(app: FastAPI) -> None:
         assert isinstance(route, APIRoute), "未登记的 HTTP route/mount"
         assert route.methods is not None
         for method in route.methods:
-            routes.append((route.path, method.lower()))
-            contract = DOCUMENT["paths"].get(route.path, {}).get(method.lower())
+            assert context.path is not None
+            routes.append((context.path, method.lower()))
+            contract = DOCUMENT["paths"].get(context.path, {}).get(method.lower())
             assert contract is not None, "真实路由未登记到合同"
             model_schema = TypeAdapter[Any](route.response_model).json_schema()
             assert normalize(model_schema, model_schema.get("$defs", {})) == normalize(
@@ -304,6 +306,10 @@ def assert_openapi_matches(app: FastAPI) -> None:
             )
             assert set(observed["responses"]) == set(operation["responses"])
             for status, response in operation["responses"].items():
+                if "$ref" in response:
+                    response = DOCUMENT["components"]["responses"][
+                        response["$ref"].rsplit("/", 1)[1]
+                    ]
                 assert normalize(
                     observed["responses"][status]["headers"], actual["components"]["schemas"]
                 ) == normalize(response["headers"], DOCUMENT["components"]["schemas"])
@@ -334,4 +340,17 @@ def test_duplicate_endpoint_cannot_pass_contract_gate(app: FastAPI) -> None:
     original = next(route for route in app.routes if isinstance(route, APIRoute))
     app.add_api_route("/health", original.endpoint, response_model=original.response_model)
     with pytest.raises(AssertionError, match="重复"):
+        assert_openapi_matches(app)
+
+
+@pytest.mark.parametrize("hidden", [False, True])
+def test_included_prefixed_endpoint_cannot_bypass_contract_gate(app: FastAPI, hidden: bool) -> None:
+    router = APIRouter()
+
+    async def private() -> None:
+        pass
+
+    router.add_api_route("/private", private, include_in_schema=not hidden)
+    app.include_router(router, prefix="/nested")
+    with pytest.raises(AssertionError, match="未登记"):
         assert_openapi_matches(app)

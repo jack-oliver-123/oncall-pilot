@@ -123,7 +123,59 @@ def type_for(schema: dict, language: str) -> str:
     return value
 
 
+def resolve_response(doc: dict, response: dict) -> dict:
+    """响应引用仅允许指向已登记的共享响应，拒绝未解析引用。"""
+    if "$ref" not in response:
+        return response
+    ref = response["$ref"]
+    prefix = "#/components/responses/"
+    if set(response) != {"$ref"} or not ref.startswith(prefix):
+        raise ValueError("响应必须使用合法的共享响应引用")
+    result = doc["components"].get("responses", {}).get(ref[len(prefix):])
+    if result is None or "$ref" in result:
+        raise ValueError("共享响应引用无法解析")
+    return result
+
+
+def validate_protected_operations(doc: dict) -> None:
+    """新增 path 默认受保护；公开例外必须显式登记。"""
+    pattern = doc["x-protected-operation"]
+    if pattern["security"] != [{"BearerAuth": []}]:
+        raise ValueError("受保护操作必须使用 BearerAuth")
+    if doc["components"]["securitySchemes"]["BearerAuth"] != {
+        "type": "http", "scheme": "bearer",
+    }:
+        raise ValueError("BearerAuth 必须是 HTTP bearer")
+    for status, name in [("401", "Unauthenticated"), ("403", "Forbidden")]:
+        if pattern["responses"].get(status) != {"$ref": f"#/components/responses/{name}"}:
+            raise ValueError("受保护操作必须复用 401/403 响应")
+        response = resolve_response(doc, pattern["responses"][status])
+        if response["content"]["application/json"]["schema"] != {
+            "$ref": "#/components/schemas/ApiFailure",
+        }:
+            raise ValueError("安全错误必须使用 ApiFailure")
+    public = doc["x-public-operations"]
+    seen = set()
+    for methods in doc["paths"].values():
+        for op in methods.values():
+            if op["operationId"] in seen:
+                raise ValueError("operationId 必须唯一，不能复用公开例外身份")
+            seen.add(op["operationId"])
+            if op["operationId"] in public:
+                if op.get("security"):
+                    raise ValueError("公开操作不能声明受保护安全要求")
+                continue
+            if op.get("security") != pattern["security"] or any(
+                op["responses"].get(status) != response
+                for status, response in pattern["responses"].items()
+            ):
+                raise ValueError("受保护操作缺少 bearer 或共享 401/403")
+    if len(public) != len(set(public)) or not set(public) <= seen:
+        raise ValueError("公开例外必须唯一且对应真实操作")
+
+
 def render(doc: dict) -> dict[Path, str]:
+    validate_protected_operations(doc)
     schemas = doc["components"]["schemas"]
 
     def tags(schema, key):
@@ -206,7 +258,7 @@ def render(doc: dict) -> dict[Path, str]:
             operations[op["operationId"]] = {"path": path, "method": method.upper(), "responseSchema": success}
             operation_docs[op["operationId"]] = {
                 "parameters": op.get("parameters", []),
-                "responses": {status: {"headers": response.get("headers", {})}
+                "responses": {status: {"headers": resolve_response(doc, response).get("headers", {})}
                               for status, response in op["responses"].items()},
             }
             result_types.append(f'  {op["operationId"]}: {success};')
@@ -219,6 +271,18 @@ def render(doc: dict) -> dict[Path, str]:
             return inline(schemas[value["$ref"].rsplit("/", 1)[1]])
         return {k: inline(v) for k, v in value.items()}
     py += ["OPERATION_DOCS: dict[str, dict[str, Any]] = " + pformat(inline(operation_docs), width=95, sort_dicts=False), ""]
+    protected = {
+        "security": doc["x-protected-operation"]["security"],
+        "responses": {
+            status: {
+                **resolve_response(doc, response),
+                "headers": inline(resolve_response(doc, response).get("headers", {})),
+            }
+            for status, response in doc["x-protected-operation"]["responses"].items()
+        },
+    }
+    py += ["PROTECTED_OPERATION: dict[str, Any] = " + pformat(protected, width=95, sort_dicts=False), ""]
+    ts += ["export const protectedOperation = " + json.dumps(doc["x-protected-operation"], indent=2) + " as const;"]
     ts += [f"export const operations = {json.dumps(operations, indent=2)} as const;",
            "export interface OperationResponses {", *result_types, "}",
            "export interface SchemaTypes {", *[f"  {n}: {n};" for n in schemas], "}", ""]

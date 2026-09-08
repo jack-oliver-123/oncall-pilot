@@ -4,13 +4,15 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from oncall_pilot.auth.models import AuthSessionRow, UserRow
 from oncall_pilot.auth.records import AuthRepositoryPort, AuthSession, DuplicateEmail, User
+from oncall_pilot.memory.scope import OwnerScope
 from oncall_pilot.memory.sqlite import Database
+from oncall_pilot.memory.sqlite.scope import scoped_select, scoped_update
 
 
 @asynccontextmanager
@@ -54,11 +56,14 @@ class AuthRepository:
         row = await self._session.scalar(select(UserRow).where(UserRow.email == email))
         return None if row is None else _user(row)
 
-    async def get_user(self, user_id: str) -> User | None:
-        row = await self._session.get(UserRow, user_id)
+    async def get_user(self, *, owner_user_id: str) -> User | None:
+        row = await self._session.scalar(
+            scoped_select(UserRow, UserRow.id, owner_user_id=owner_user_id)
+        )
         return None if row is None else _user(row)
 
-    async def add_session(self, record: AuthSession) -> None:
+    async def add_session(self, record: AuthSession, *, owner_user_id: str) -> None:
+        OwnerScope(owner_user_id).require_owner(record.user_id)
         self._session.add(
             AuthSessionRow(
                 id=record.id,
@@ -80,20 +85,19 @@ class AuthRepository:
         )
         return None if row is None else _session(row)
 
-    async def get_session(self, owner_id: str, session_id: str) -> AuthSession | None:
+    async def get_session(self, session_id: str, *, owner_user_id: str) -> AuthSession | None:
         row = await self._session.scalar(
-            select(AuthSessionRow).where(
-                AuthSessionRow.id == session_id, AuthSessionRow.user_id == owner_id
-            )
+            scoped_select(
+                AuthSessionRow, AuthSessionRow.user_id, owner_user_id=owner_user_id
+            ).where(AuthSessionRow.id == session_id)
         )
         return None if row is None else _session(row)
 
-    async def touch_session(self, owner_id: str, session_id: str, now: datetime) -> bool:
+    async def touch_session(self, session_id: str, now: datetime, *, owner_user_id: str) -> bool:
         result = await self._session.scalar(
-            update(AuthSessionRow)
+            scoped_update(AuthSessionRow, AuthSessionRow.user_id, owner_user_id=owner_user_id)
             .where(
                 AuthSessionRow.id == session_id,
-                AuthSessionRow.user_id == owner_id,
                 AuthSessionRow.revoked_at.is_(None),
             )
             .values(last_seen_at=now)
@@ -101,12 +105,11 @@ class AuthRepository:
         )
         return result is not None
 
-    async def revoke_session(self, owner_id: str, session_id: str, now: datetime) -> bool:
+    async def revoke_session(self, session_id: str, now: datetime, *, owner_user_id: str) -> bool:
         result = await self._session.scalar(
-            update(AuthSessionRow)
+            scoped_update(AuthSessionRow, AuthSessionRow.user_id, owner_user_id=owner_user_id)
             .where(
                 AuthSessionRow.id == session_id,
-                AuthSessionRow.user_id == owner_id,
                 AuthSessionRow.revoked_at.is_(None),
             )
             .values(revoked_at=now)

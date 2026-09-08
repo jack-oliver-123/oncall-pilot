@@ -40,6 +40,72 @@ const create = (fetch: typeof globalThis.fetch) =>
 beforeEach(() => localStorage.clear());
 
 describe("authClient 与认证状态", () => {
+  it("两个不同用户切换时清理数据并丢弃旧用户迟到响应", async () => {
+    const other = {
+      ...user,
+      id: "ee125a44-639c-4c1f-a5c3-70533b8b75d8",
+      email: "other@example.com",
+    };
+    let finish!: (response: Response) => void;
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(loginResponse())
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(success(null))
+      .mockResolvedValueOnce(success({ user: other, token: "b".repeat(43), tokenType: "Bearer" }));
+    const auth = create(fetch);
+    await auth.login(credentials);
+    const visible = [user.email];
+    auth.registerProtectedStore(() => visible.splice(0));
+    const oldRequest = auth.request("getCurrentUser").then((result) => visible.push(result.email));
+    const rejected = expect(oldRequest).rejects.toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await auth.logout();
+    expect(visible).toEqual([]);
+    await auth.login({ ...credentials, email: other.email });
+    finish(success(user));
+    await rejected;
+    expect(auth.state.user).toEqual(other);
+    expect(visible).toEqual([]);
+    expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
+      "http://127.0.0.1:8000/auth/login",
+      "http://127.0.0.1:8000/auth/me",
+      "http://127.0.0.1:8000/auth/logout",
+      "http://127.0.0.1:8000/auth/login",
+    ]);
+  });
+
+  it("资源 403 保留有效认证，不按资源不存在清理用户身份", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(loginResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: false,
+            error: errorCatalog.AUTH_FORBIDDEN,
+            meta: { requestId: "scope-test" },
+          }),
+          { status: 403, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    const auth = create(fetch);
+    await auth.login(credentials);
+    const clear = vi.fn();
+    auth.registerProtectedStore(clear);
+    await expect(auth.request("getCurrentUser")).rejects.toMatchObject({
+      error: { code: "AUTH_FORBIDDEN", httpStatus: 403 },
+    });
+    expect(auth.state.user).toEqual(user);
+    expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe(token);
+    expect(clear).not.toHaveBeenCalled();
+  });
+
   it("注册不登录，登录只保存 token，发送合同请求", async () => {
     localStorage.setItem("unrelated-preference", "dark");
     const fetch = vi

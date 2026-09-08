@@ -356,6 +356,21 @@ export const errorCatalog = {
   }
 } as const;
 export type ErrorCode = keyof typeof errorCatalog;
+export const protectedOperation = {
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "responses": {
+    "401": {
+      "$ref": "#/components/responses/Unauthenticated"
+    },
+    "403": {
+      "$ref": "#/components/responses/Forbidden"
+    }
+  }
+} as const;
 export const operations = {
   "getHealth": {
     "path": "/health",
