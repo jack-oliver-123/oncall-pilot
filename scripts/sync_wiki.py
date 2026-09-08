@@ -294,7 +294,10 @@ def _validate_archive_specs(
 ) -> list[str]:
     errors: list[str] = []
     operations: list[SpecOperation] = []
-    for page in reversed(pages):
+    # 同日归档时先按 OpenSpec 创建日期折叠，避免名称反序覆盖后续 Change。
+    for page in sorted(
+        pages, key=lambda item: (item.archived_date or "", item.created_date, item.directory_name)
+    ):
         specs = sorted((page.source_dir / "specs").glob("*/spec.md"))
         skip_specs = _metadata_bool(page.source_dir / ".openspec.yaml", "skip_specs")
         if not specs:

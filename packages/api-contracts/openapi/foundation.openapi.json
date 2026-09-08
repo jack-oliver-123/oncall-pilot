@@ -1,0 +1,1055 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "On-call Pilot",
+    "version": "0.2.0",
+    "description": "HTTP 与 SSE 唯一机器合同；新增 endpoint 前先扩展此合同。"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "tags": [
+          "foundation"
+        ],
+        "summary": "检查进程存活",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "进程存活",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RequestId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+      },
+      "EventId": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\r\\n\\u0000]+$"
+      },
+      "Timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "ResponseMeta": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/RequestId"
+          }
+        },
+        "required": [
+          "requestId"
+        ],
+        "additionalProperties": false
+      },
+      "HealthData": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorAuthUnauthenticated": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "AUTH_UNAUTHENTICATED"
+          },
+          "category": {
+            "const": "AUTH"
+          },
+          "httpStatus": {
+            "const": 401
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "请先登录。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorAuthForbidden": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "AUTH_FORBIDDEN"
+          },
+          "category": {
+            "const": "AUTH"
+          },
+          "httpStatus": {
+            "const": 403
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "没有执行此操作的权限。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorBusinessNotFound": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "BUSINESS_NOT_FOUND"
+          },
+          "category": {
+            "const": "BUSINESS"
+          },
+          "httpStatus": {
+            "const": 404
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "请求的资源不存在。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorBusinessConflict": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "BUSINESS_CONFLICT"
+          },
+          "category": {
+            "const": "BUSINESS"
+          },
+          "httpStatus": {
+            "const": 409
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "当前状态无法执行此操作。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorValidationBadRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "VALIDATION_BAD_REQUEST"
+          },
+          "category": {
+            "const": "VALIDATION"
+          },
+          "httpStatus": {
+            "const": 400
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "请求格式不正确。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorValidationMethodNotAllowed": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "VALIDATION_METHOD_NOT_ALLOWED"
+          },
+          "category": {
+            "const": "VALIDATION"
+          },
+          "httpStatus": {
+            "const": 405
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "不支持此请求方式。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorValidationRequestInvalid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "VALIDATION_REQUEST_INVALID"
+          },
+          "category": {
+            "const": "VALIDATION"
+          },
+          "httpStatus": {
+            "const": 422
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "请求参数不符合要求。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorSystemRateLimited": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "SYSTEM_RATE_LIMITED"
+          },
+          "category": {
+            "const": "SYSTEM"
+          },
+          "httpStatus": {
+            "const": 429
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "请求过于频繁，请稍后重试。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorSystemInternalError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "SYSTEM_INTERNAL_ERROR"
+          },
+          "category": {
+            "const": "SYSTEM"
+          },
+          "httpStatus": {
+            "const": 500
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "服务暂时出现问题，请稍后重试。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorSystemUnavailable": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "SYSTEM_UNAVAILABLE"
+          },
+          "category": {
+            "const": "SYSTEM"
+          },
+          "httpStatus": {
+            "const": 503
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "服务暂时不可用，请稍后重试。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ApiError": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ErrorAuthUnauthenticated"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorAuthForbidden"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorBusinessNotFound"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorBusinessConflict"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorValidationBadRequest"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorValidationMethodNotAllowed"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorValidationRequestInvalid"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorSystemRateLimited"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorSystemInternalError"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorSystemUnavailable"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "code",
+          "mapping": {
+            "AUTH_UNAUTHENTICATED": "#/components/schemas/ErrorAuthUnauthenticated",
+            "AUTH_FORBIDDEN": "#/components/schemas/ErrorAuthForbidden",
+            "BUSINESS_NOT_FOUND": "#/components/schemas/ErrorBusinessNotFound",
+            "BUSINESS_CONFLICT": "#/components/schemas/ErrorBusinessConflict",
+            "VALIDATION_BAD_REQUEST": "#/components/schemas/ErrorValidationBadRequest",
+            "VALIDATION_METHOD_NOT_ALLOWED": "#/components/schemas/ErrorValidationMethodNotAllowed",
+            "VALIDATION_REQUEST_INVALID": "#/components/schemas/ErrorValidationRequestInvalid",
+            "SYSTEM_RATE_LIMITED": "#/components/schemas/ErrorSystemRateLimited",
+            "SYSTEM_INTERNAL_ERROR": "#/components/schemas/ErrorSystemInternalError",
+            "SYSTEM_UNAVAILABLE": "#/components/schemas/ErrorSystemUnavailable"
+          }
+        }
+      },
+      "ApiSuccess": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {},
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "ApiFailure": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": false
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "error",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "ApiEnvelope": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "$ref": "#/components/schemas/ApiFailure"
+          }
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "ContentDelta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "content.delta"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "delta": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "delta"
+        ],
+        "additionalProperties": false
+      },
+      "ReasoningDelta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "reasoning.delta"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "delta": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "delta"
+        ],
+        "additionalProperties": false
+      },
+      "ToolStarted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "tool.call"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "callId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "started"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "callId",
+          "name",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "ToolDelta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "tool.call"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "callId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "delta"
+          },
+          "delta": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "callId",
+          "name",
+          "status",
+          "delta"
+        ],
+        "additionalProperties": false
+      },
+      "ToolCompleted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "tool.call"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "callId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "completed"
+          },
+          "output": {}
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "callId",
+          "name",
+          "status",
+          "output"
+        ],
+        "additionalProperties": false
+      },
+      "ToolFailed": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "tool.call"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "callId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "const": "failed"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "callId",
+          "name",
+          "status",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "ToolCall": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ToolStarted"
+          },
+          {
+            "$ref": "#/components/schemas/ToolDelta"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/ToolFailed"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "status",
+          "mapping": {
+            "started": "#/components/schemas/ToolStarted",
+            "delta": "#/components/schemas/ToolDelta",
+            "completed": "#/components/schemas/ToolCompleted",
+            "failed": "#/components/schemas/ToolFailed"
+          }
+        }
+      },
+      "ReferenceSource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "reference.source"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "sourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "sourceId",
+          "title",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "TaskStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "task.status"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "taskId",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "report"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "reportId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "reportId",
+          "title",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "Complete": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "complete"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "finishReason": {
+            "enum": [
+              "stop",
+              "cancelled",
+              "error"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "finishReason"
+        ],
+        "additionalProperties": false
+      },
+      "ErrorEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/EventId"
+          },
+          "type": {
+            "const": "error"
+          },
+          "channel": {
+            "enum": [
+              "chat",
+              "aiops"
+            ]
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "channel",
+          "timestamp",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "SseEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ContentDelta"
+          },
+          {
+            "$ref": "#/components/schemas/ReasoningDelta"
+          },
+          {
+            "$ref": "#/components/schemas/ToolCall"
+          },
+          {
+            "$ref": "#/components/schemas/ReferenceSource"
+          },
+          {
+            "$ref": "#/components/schemas/TaskStatus"
+          },
+          {
+            "$ref": "#/components/schemas/Report"
+          },
+          {
+            "$ref": "#/components/schemas/Complete"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorEvent"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "content.delta": "#/components/schemas/ContentDelta",
+            "reasoning.delta": "#/components/schemas/ReasoningDelta",
+            "tool.call": "#/components/schemas/ToolCall",
+            "reference.source": "#/components/schemas/ReferenceSource",
+            "task.status": "#/components/schemas/TaskStatus",
+            "report": "#/components/schemas/Report",
+            "complete": "#/components/schemas/Complete",
+            "error": "#/components/schemas/ErrorEvent"
+          }
+        }
+      }
+    }
+  }
+}

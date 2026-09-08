@@ -43,6 +43,8 @@ jobs:
   linux-python-minimum:
     name: Linux 后端兼容 / Python 3.10
     runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: "3.10"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -59,7 +61,9 @@ jobs:
           uv sync --frozen
       - name: Ruff
         working-directory: apps/backend
-        run: uv run ruff check .
+        run: |
+          uv run python -c "import sys; assert sys.version_info[:2] == (3, 10), sys.version"
+          uv run ruff check .
       - name: Pyright
         working-directory: apps/backend
         run: uv run pyright

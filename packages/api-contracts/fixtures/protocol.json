@@ -1,0 +1,277 @@
+{
+  "successes": [
+    {
+      "ok": true,
+      "data": {
+        "status": "ok"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": true,
+      "data": [],
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": true,
+      "data": null,
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": true,
+      "data": 0,
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": true,
+      "data": false,
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": true,
+      "data": "文本",
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    }
+  ],
+  "failures": [
+    {
+      "ok": false,
+      "error": {
+        "code": "AUTH_UNAUTHENTICATED",
+        "category": "AUTH",
+        "httpStatus": 401,
+        "message": "请先登录。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "AUTH_FORBIDDEN",
+        "category": "AUTH",
+        "httpStatus": 403,
+        "message": "没有执行此操作的权限。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "BUSINESS_NOT_FOUND",
+        "category": "BUSINESS",
+        "httpStatus": 404,
+        "message": "请求的资源不存在。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "BUSINESS_CONFLICT",
+        "category": "BUSINESS",
+        "httpStatus": 409,
+        "message": "当前状态无法执行此操作。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "VALIDATION_BAD_REQUEST",
+        "category": "VALIDATION",
+        "httpStatus": 400,
+        "message": "请求格式不正确。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "VALIDATION_METHOD_NOT_ALLOWED",
+        "category": "VALIDATION",
+        "httpStatus": 405,
+        "message": "不支持此请求方式。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "VALIDATION_REQUEST_INVALID",
+        "category": "VALIDATION",
+        "httpStatus": 422,
+        "message": "请求参数不符合要求。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "SYSTEM_RATE_LIMITED",
+        "category": "SYSTEM",
+        "httpStatus": 429,
+        "message": "请求过于频繁，请稍后重试。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "SYSTEM_INTERNAL_ERROR",
+        "category": "SYSTEM",
+        "httpStatus": 500,
+        "message": "服务暂时出现问题，请稍后重试。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "SYSTEM_UNAVAILABLE",
+        "category": "SYSTEM",
+        "httpStatus": 503,
+        "message": "服务暂时不可用，请稍后重试。"
+      },
+      "meta": {
+        "requestId": "contract-test-001"
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "content.delta",
+      "delta": "示例中文"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "reasoning.delta",
+      "delta": "示例中文"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "tool.call",
+      "callId": "示例中文",
+      "name": "示例中文",
+      "status": "started"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "tool.call",
+      "callId": "示例中文",
+      "name": "示例中文",
+      "status": "delta",
+      "delta": "示例中文"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "tool.call",
+      "callId": "示例中文",
+      "name": "示例中文",
+      "status": "completed",
+      "output": {
+        "text": "结果"
+      }
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "tool.call",
+      "callId": "示例中文",
+      "name": "示例中文",
+      "status": "failed",
+      "error": {
+        "code": "SYSTEM_INTERNAL_ERROR",
+        "category": "SYSTEM",
+        "httpStatus": 500,
+        "message": "服务暂时出现问题，请稍后重试。"
+      }
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "reference.source",
+      "sourceId": "示例中文",
+      "title": "示例中文",
+      "url": "https://example.com/source"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "task.status",
+      "taskId": "示例中文",
+      "status": "queued"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "report",
+      "reportId": "示例中文",
+      "title": "示例中文",
+      "content": "示例中文"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "complete",
+      "finishReason": "stop"
+    },
+    {
+      "id": "event-1",
+      "channel": "chat",
+      "timestamp": "2026-09-08T00:00:00Z",
+      "type": "error",
+      "error": {
+        "code": "SYSTEM_INTERNAL_ERROR",
+        "category": "SYSTEM",
+        "httpStatus": 500,
+        "message": "服务暂时出现问题，请稍后重试。"
+      }
+    }
+  ]
+}

@@ -28,7 +28,9 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "check": "npm run openspec:validate && npm run backend:lint && npm run backend:typecheck && npm run backend:test && npm run contracts:typecheck && npm run contracts:test && npm run frontend:lint && npm run frontend:format:check && npm run frontend:typecheck && npm run frontend:test && npm run frontend:build && npm run wiki:test && npm run docs:build"
+    "check": "npm run openspec:validate && npm run backend:lint && npm run backend:typecheck && npm run backend:test && npm run contracts:typecheck && npm run contracts:test && npm run frontend:lint && npm run frontend:format:check && npm run frontend:typecheck && npm run frontend:test && npm run frontend:build && npm run wiki:test && npm run docs:build",
+    "contracts:generate": "python scripts/generate_contracts.py",
+    "contracts:check": "python scripts/generate_contracts.py --check"
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.7.0",

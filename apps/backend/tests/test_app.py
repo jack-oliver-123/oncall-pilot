@@ -33,7 +33,11 @@ async def test_health_reports_process_liveness_without_dependency_probes(
         response = await client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {
+        "ok": True,
+        "data": {"status": "ok"},
+        "meta": {"requestId": response.headers["X-Request-ID"]},
+    }
 
 
 def test_app_factory_fails_before_startup_when_project_config_is_missing(
