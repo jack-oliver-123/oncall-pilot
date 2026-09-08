@@ -3,11 +3,24 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 context: |
-  Read CONTEXT.md for stable project vocabulary.
-  Read docs/agents/combined-workflow.md for the OpenSpec/Matt Skills boundary,
-  artifact mapping, lifecycle gates, and conflict protocol.
-  OpenSpec is the formal Change control plane; Matt Pocock Skills are the
-  method layer and must not create parallel specifications or change state.
+  项目统一名称为 On-call Pilot。先读取 CONTEXT.md 中的稳定词汇，并读取
+  AGENTS.md、docs/agents/combined-workflow.md 了解项目规则、artifact 归宿、
+  阶段门禁与冲突处理。OpenSpec 是正式 Change 控制平面；Matt Skills 是方法层，
+  不得创建平行规格或静默改变 Change 状态。
+
+  项目采用 npm workspaces：apps/backend 是 Python >=3.10、FastAPI、Pydantic v2、
+  uv/hatchling、SQLAlchemy 2 async、aiosqlite、Alembic；apps/frontend 是 Vue 3.5、
+  Vite 6、TypeScript 5.6 strict、Pinia 3、Vue Router 4、Vitest 2；
+  packages/api-contracts 提供单向共享 TypeScript contract。Python import namespace
+  只使用 oncall_pilot。module import 不读取项目配置或连接外部依赖。
+
+  项目配置只来自 config/project.json 与可选 user.project.json 的递归深合并结果，
+  不从 OS 环境变量读取项目值。浏览器只允许接收 frontend.title、
+  frontend.apiBaseUrl 和明确 public 的 analytics key。任何 secret 默认私有。
+
+  backend、frontend 和官方 CLS MCP Server 在主机运行；未来 Compose 只托管 etcd、
+  MinIO、Milvus、Attu 和 Alertmanager。所有项目维护文档和 artifact 使用简体中文；
+  技术标识、命令、路径、标准词和 OpenSpec 必需结构关键字可保留原文。
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

@@ -1,0 +1,101 @@
+name: 工程质量
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  linux-full:
+    name: Linux 完整门禁 / Python 3.12
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/backend/uv.lock
+      - name: 安装 npm workspaces
+        run: npm ci
+      - name: 准备 ignored 本地配置
+        run: cp config/project.template.json config/project.json
+      - name: 安装后端冻结依赖
+        working-directory: apps/backend
+        run: |
+          uv lock --check
+          uv sync --frozen
+      - name: 执行完整质量门禁
+        run: npm run check
+      - name: 检查补丁空白错误
+        run: git diff --check
+
+  linux-python-minimum:
+    name: Linux 后端兼容 / Python 3.10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/backend/uv.lock
+      - name: 安装后端冻结依赖
+        working-directory: apps/backend
+        run: |
+          uv lock --check
+          uv sync --frozen
+      - name: Ruff
+        working-directory: apps/backend
+        run: uv run ruff check .
+      - name: Pyright
+        working-directory: apps/backend
+        run: uv run pyright
+      - name: Pytest
+        working-directory: apps/backend
+        run: uv run pytest
+
+  windows-smoke:
+    name: Windows smoke / Python 3.12
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/backend/uv.lock
+      - name: 安装 npm workspaces
+        run: npm ci
+      - name: 准备 ignored 本地配置
+        shell: pwsh
+        run: Copy-Item config/project.template.json config/project.json
+      - name: 安装后端冻结依赖
+        working-directory: apps/backend
+        run: |
+          uv lock --check
+          uv sync --frozen
+      - name: 后端测试
+        run: npm run backend:test
+      - name: Contracts typecheck/test
+        run: npm run contracts:typecheck && npm run contracts:test
+      - name: Frontend typecheck/test/build
+        run: npm run frontend:typecheck && npm run frontend:test && npm run frontend:build

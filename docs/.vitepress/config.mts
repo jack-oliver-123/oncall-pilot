@@ -2,7 +2,7 @@
 import { defineConfig } from "vitepress";
 
 const activeItems = [
-
+  { text: "establish-project-foundation", link: "/changes/active/establish-project-foundation/" },
 ];
 
 const archivedItems = [

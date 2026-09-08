@@ -1,0 +1,12 @@
+{
+  "frontend": {
+    "title": "On-call Pilot",
+    "apiBaseUrl": "http://127.0.0.1:8000",
+    "analytics": {
+      "publicKey": ""
+    }
+  },
+  "database": {
+    "url": "sqlite+aiosqlite:///apps/backend/var/oncall-pilot.db"
+  }
+}
