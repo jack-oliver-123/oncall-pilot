@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oncall-pilot-backend"
+version = "0.1.0"
+description = "On-call Pilot 后端工程基座"
+requires-python = ">=3.10"
+dependencies = [
+  "aiosqlite>=0.20,<1",
+  "alembic>=1.14,<2",
+  "fastapi>=0.115,<1",
+  "pydantic>=2.10,<3",
+  "sqlalchemy[asyncio]>=2.0,<3",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+ai = [
+  "httpx>=0.28,<1",
+  "langchain>=1,<2",
+  "langchain-mcp-adapters>=0.1,<1",
+  "langchain-openai>=1,<2",
+  "langchain-text-splitters>=1,<2",
+  "langgraph>=1,<2",
+  "mcp>=1,<2",
+  "pymilvus>=3,<4",
+  "pypdf>=5,<7",
+  "rank-bm25>=0.2,<1",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28,<1",
+  "pyright>=1.1,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<1",
+  "ruff>=0.9,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oncall_pilot"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+include = ["src", "tests", "migrations"]
+exclude = [".venv"]
+venvPath = "."
+venv = ".venv"

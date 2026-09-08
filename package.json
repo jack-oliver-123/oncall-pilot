@@ -2,12 +2,36 @@
   "name": "oncall-pilot",
   "private": true,
   "type": "module",
+  "packageManager": "npm@10.9.7",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "workspaces": [
+    "apps/frontend",
+    "packages/api-contracts"
+  ],
   "scripts": {
+    "backend:dev": "uv --directory apps/backend run python -m oncall_pilot --config-dir ../../config --host 127.0.0.1 --port 8000",
+    "backend:lint": "uv --directory apps/backend run ruff check .",
+    "backend:typecheck": "uv --directory apps/backend run pyright",
+    "backend:test": "uv --directory apps/backend run pytest",
+    "frontend:dev": "npm run dev --workspace @oncall-pilot/frontend",
+    "frontend:lint": "npm run lint --workspace @oncall-pilot/frontend",
+    "frontend:format:check": "npm run format:check --workspace @oncall-pilot/frontend",
+    "frontend:typecheck": "npm run typecheck --workspace @oncall-pilot/frontend",
+    "frontend:test": "npm run test --workspace @oncall-pilot/frontend",
+    "frontend:build": "npm run build --workspace @oncall-pilot/frontend",
+    "contracts:typecheck": "npm run typecheck --workspace @oncall-pilot/api-contracts",
+    "contracts:test": "npm run test --workspace @oncall-pilot/api-contracts",
+    "wiki:test": "python -m unittest discover -s scripts/tests -p test_*.py",
+    "openspec:validate": "openspec validate --all --strict",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "check": "npm run openspec:validate && npm run backend:lint && npm run backend:typecheck && npm run backend:test && npm run contracts:typecheck && npm run contracts:test && npm run frontend:lint && npm run frontend:format:check && npm run frontend:typecheck && npm run frontend:test && npm run frontend:build && npm run wiki:test && npm run docs:build"
   },
   "devDependencies": {
+    "@fission-ai/openspec": "1.7.0",
     "vitepress": "1.6.4"
   },
   "overrides": {

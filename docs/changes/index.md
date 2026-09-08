@@ -8,7 +8,7 @@ title: OpenSpec 变更
 
 ## 进行中
 
-当前没有进行中的变更。
+- [establish-project-foundation](/changes/active/establish-project-foundation/)
 
 ## 已归档
 
