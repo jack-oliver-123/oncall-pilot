@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
+from io import TextIOWrapper
 from pathlib import Path
 from typing import cast
 
@@ -22,6 +24,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> None:
     """解析显式进程参数并启动 Uvicorn。"""
+
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
 
     arguments = _build_parser().parse_args(argv)
     config_dir = Path(cast(str, arguments.config_dir))
