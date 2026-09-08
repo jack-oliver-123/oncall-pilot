@@ -1,6 +1,6 @@
 # On-call Pilot
 
-On-call Pilot 当前正在建立产品工程基座。仓库包含 OpenSpec/WIKI、FastAPI 后端骨架、Vue 前端 workspace、TypeScript API contracts 和本地 JSON 配置边界；认证、聊天、知识库、AIOps、LLM/MCP 接入等产品能力尚未实现。
+On-call Pilot 当前正在建立产品工程基座。仓库包含 OpenSpec/WIKI、FastAPI 后端、Vue 前端 workspace、TypeScript API contracts、本地 JSON 配置、持久化、用户认证与 Qwen/Bailian 模型注入边界；聊天、知识库、AIOps、Agent/MCP 等完整产品流程尚未开放。模型配置与手动验证见 [模型指南](apps/backend/llm.md)。
 
 ## 安装
 
@@ -20,7 +20,7 @@ npm run check
 git diff --check
 ```
 
-`npm run check` 统一执行 OpenSpec、backend、contracts、frontend、WIKI 和 VitePress 门禁。当前 Change 与任务状态以 `openspec/changes/establish-project-foundation/` 为准。
+`npm run check` 统一执行 OpenSpec、backend、contracts、frontend、WIKI 和 VitePress 门禁。当前 Change 与任务状态以 `openspec list --json` 及对应 artifacts 为准。
 
 ## 项目规则
 

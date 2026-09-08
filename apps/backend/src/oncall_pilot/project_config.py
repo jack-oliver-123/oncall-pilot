@@ -6,9 +6,7 @@ import json
 from pathlib import Path
 from typing import TypeAlias, cast
 
-JsonValue: TypeAlias = (
-    None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
-)
+JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 JsonObject: TypeAlias = dict[str, JsonValue]
 
 
@@ -17,20 +15,24 @@ class ProjectConfigError(ValueError):
 
 
 def _read_json_object(path: Path, *, required: bool) -> JsonObject:
-    if not path.exists():
-        if required:
-            raise ProjectConfigError(f"必需配置文件不存在: {path}")
-        return {}
-
+    failure: str | None = None
+    raw: object = None
     try:
         raw = cast(object, json.loads(path.read_text(encoding="utf-8")))
-    except json.JSONDecodeError as exc:
-        raise ProjectConfigError(f"配置文件不是有效 JSON: {path}: {exc.msg}") from exc
-    except OSError as exc:
-        raise ProjectConfigError(f"无法读取配置文件: {path}: {exc}") from exc
+    except FileNotFoundError:
+        if not required:
+            return {}
+        failure = "必需配置文件不存在"
+    except (json.JSONDecodeError, UnicodeError):
+        failure = "配置文件不是有效 UTF-8 JSON"
+    except OSError:
+        failure = "无法读取配置文件"
+
+    if failure is not None:
+        raise ProjectConfigError(f"{failure}: {path.name}")
 
     if not isinstance(raw, dict):
-        raise ProjectConfigError(f"配置文件根节点必须是 JSON object: {path}")
+        raise ProjectConfigError(f"配置文件根节点必须是 JSON object: {path.name}")
 
     return cast(JsonObject, raw)
 
@@ -52,4 +54,9 @@ def load_project_config(config_dir: Path) -> JsonObject:
     resolved_dir = config_dir.resolve()
     project = _read_json_object(resolved_dir / "project.json", required=True)
     user = _read_json_object(resolved_dir / "user.project.json", required=False)
-    return _deep_merge(project, user)
+    merged = _deep_merge(project, user)
+    if "llm" in merged:
+        from oncall_pilot.llm.config import parse_provider_settings
+
+        parse_provider_settings(merged)
+    return merged

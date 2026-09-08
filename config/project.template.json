@@ -1,4 +1,11 @@
 {
+  "app": {
+    "name": "On-call Pilot"
+  },
+  "backend": {
+    "host": "127.0.0.1",
+    "port": 8000
+  },
   "frontend": {
     "title": "On-call Pilot",
     "apiBaseUrl": "http://127.0.0.1:8000",
@@ -8,5 +15,71 @@
   },
   "database": {
     "url": "sqlite+aiosqlite:///apps/backend/var/oncall-pilot.db"
+  },
+  "llm": {
+    "provider": "qwen-openai",
+    "chat": {
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "apiKey": "",
+      "model": "qwen3.7-max",
+      "temperature": 0.2,
+      "timeout": 120,
+      "retries": 2
+    },
+    "embedding": {
+      "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "apiKey": "",
+      "model": "text-embedding-v4",
+      "dimensions": 1024,
+      "check_embedding_ctx_length": false,
+      "chunk_size": 10,
+      "timeout": 120,
+      "retries": 2
+    },
+    "rerank": {
+      "baseUrl": "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank",
+      "apiKey": "",
+      "model": "qwen3-vl-rerank",
+      "timeout": 120,
+      "retries": 2
+    }
+  },
+  "modelCapabilities": {
+    "qwen3.7-max": {
+      "contextWindowTokens": 1000000
+    }
+  },
+  "vectorStore": {
+    "uri": "http://127.0.0.1:19530",
+    "token": "",
+    "database": "default"
+  },
+  "mcp": {
+    "servers": {}
+  },
+  "clsMcpServer": {
+    "url": "http://127.0.0.1:8001/mcp",
+    "secretId": "",
+    "secretKey": ""
+  },
+  "prometheusAlerts": {
+    "enabled": false,
+    "alertmanagerBaseUrl": "http://127.0.0.1:9093",
+    "webhookSecret": ""
+  },
+  "clsLogUpload": {
+    "enabled": false,
+    "endpoint": "",
+    "topicId": "",
+    "secretId": "",
+    "secretKey": ""
+  },
+  "aiopsDemo": {
+    "backendBaseUrl": "http://127.0.0.1:8000",
+    "email": "",
+    "displayName": "值班演示",
+    "password": "",
+    "pollIntervalSeconds": 5,
+    "indexWaitSeconds": 120
   }
 }

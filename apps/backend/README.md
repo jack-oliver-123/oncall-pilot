@@ -1,8 +1,10 @@
 # On-call Pilot 后端
 
-此 workspace 提供 `oncall_pilot` src-layout package、FastAPI app factory、主机 CLI、`/health`、通用 JSON 配置加载、SQLite 持久化边界、Alembic async 迁移及用户认证。Agent 和 MCP 能力尚未开放。
+此 workspace 提供 `oncall_pilot` src-layout package、FastAPI app factory、主机 CLI、`/health`、通用 JSON 配置加载、SQLite 持久化边界、Alembic async 迁移、用户认证及 Qwen/Bailian 模型注入边界。Agent 和 MCP 能力尚未开放。
 
 持久化调用约定见 [持久化指南](persistence.md)，迁移命令见 [迁移指南](migrations/README.md)。
+
+模型配置、注入与手动 live smoke 见 [模型指南](llm.md)。
 
 ## 安装与启动
 

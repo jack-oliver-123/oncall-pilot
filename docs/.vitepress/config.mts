@@ -10,6 +10,7 @@ const archivedItems = [
   { text: "establish-project-foundation", link: "/changes/archive/2026-09-08-establish-project-foundation/" },
   { text: "enforce-tenant-isolation", link: "/changes/archive/2026-09-08-enforce-tenant-isolation/" },
   { text: "define-api-and-sse-contracts", link: "/changes/archive/2026-09-08-define-api-and-sse-contracts/" },
+  { text: "configure-qwen-model-providers", link: "/changes/archive/2026-09-08-configure-qwen-model-providers/" },
   { text: "add-user-authentication", link: "/changes/archive/2026-09-08-add-user-authentication/" },
   { text: "repair-wiki-sync-workflow", link: "/changes/archive/2026-08-28-repair-wiki-sync-workflow/" },
   { text: "integrate-matt-skills-with-openspec", link: "/changes/archive/2026-08-26-integrate-matt-skills-with-openspec/" },

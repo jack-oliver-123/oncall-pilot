@@ -14,6 +14,7 @@ import importlib
 import pkgutil
 import socket
 import sqlite3
+import sys
 from pathlib import Path
 
 import fastapi
@@ -64,6 +65,9 @@ import oncall_pilot
 
 for module in pkgutil.walk_packages(oncall_pilot.__path__, oncall_pilot.__name__ + "."):
     importlib.import_module(module.name)
+
+assert "langchain_openai" not in sys.modules
+assert "openai" not in sys.modules
 '''
     database_files_before = set(BACKEND_ROOT.rglob("*.db"))
 

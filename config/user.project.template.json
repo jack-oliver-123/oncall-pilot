@@ -1,1 +1,8 @@
-{}
+{
+  "llm": {
+    "chat": { "apiKey": "" },
+    "embedding": { "apiKey": "" },
+    "rerank": { "apiKey": "" }
+  },
+  "aiopsDemo": { "password": "" }
+}

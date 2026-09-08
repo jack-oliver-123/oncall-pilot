@@ -16,6 +16,7 @@ title: OpenSpec 变更
 - [establish-project-foundation](/changes/archive/2026-09-08-establish-project-foundation/)
 - [enforce-tenant-isolation](/changes/archive/2026-09-08-enforce-tenant-isolation/)
 - [define-api-and-sse-contracts](/changes/archive/2026-09-08-define-api-and-sse-contracts/)
+- [configure-qwen-model-providers](/changes/archive/2026-09-08-configure-qwen-model-providers/)
 - [add-user-authentication](/changes/archive/2026-09-08-add-user-authentication/)
 - [repair-wiki-sync-workflow](/changes/archive/2026-08-28-repair-wiki-sync-workflow/)
 - [integrate-matt-skills-with-openspec](/changes/archive/2026-08-26-integrate-matt-skills-with-openspec/)

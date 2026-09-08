@@ -117,7 +117,7 @@ class RepositoryFoundationTests(unittest.TestCase):
             with self.subTest(path=relative_path):
                 self.assertEqual(result.returncode, 0)
 
-    def test_tracked_config_templates_are_safe_and_foundation_only(self) -> None:
+    def test_tracked_config_templates_are_safe_and_include_model_boundaries(self) -> None:
         project = json.loads(
             (ROOT / "config/project.template.json").read_text(encoding="utf-8")
         )
@@ -132,8 +132,8 @@ class RepositoryFoundationTests(unittest.TestCase):
             project["database"]["url"],
             "sqlite+aiosqlite:///apps/backend/var/oncall-pilot.db",
         )
-        self.assertEqual(user, {})
-        self.assertTrue({"llm", "cls", "mcp", "minio"}.isdisjoint(project))
+        self.assertTrue({"llm", "modelCapabilities", "mcp", "aiopsDemo"}.issubset(project))
+        self.assertEqual(user["llm"]["chat"]["apiKey"], "")
 
         def assert_credentials_are_empty(value: object) -> None:
             if not isinstance(value, dict):
@@ -144,6 +144,7 @@ class RepositoryFoundationTests(unittest.TestCase):
                 assert_credentials_are_empty(child)
 
         assert_credentials_are_empty(project)
+        assert_credentials_are_empty(user)
 
     def test_agents_is_the_single_project_guide(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
