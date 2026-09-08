@@ -62,7 +62,7 @@ class AuthService:
             new_id(), user.id, hashlib.sha256(token.encode()).hexdigest(), now, now, None
         )
         async with self._transactions() as repository:
-            await repository.add_session(record)
+            await repository.add_session(record, owner_user_id=user.id)
         return LoginData(user=public_user(user), token=token, tokenType="Bearer")
 
     async def authenticate(self, token: str) -> Identity:
@@ -75,9 +75,11 @@ class AuthService:
         if record is None:
             raise ApiException("AUTH_UNAUTHENTICATED")
         async with self._transactions() as repository:
-            if not await repository.touch_session(record.user_id, record.id, utc_now()):
+            if not await repository.touch_session(
+                record.id, utc_now(), owner_user_id=record.user_id
+            ):
                 raise ApiException("AUTH_UNAUTHENTICATED")
-            user = await repository.get_user(record.user_id)
+            user = await repository.get_user(owner_user_id=record.user_id)
             if user is None:
                 raise ApiException("AUTH_UNAUTHENTICATED")
         return Identity(user, record)
@@ -85,6 +87,6 @@ class AuthService:
     async def logout(self, identity: Identity) -> None:
         async with self._transactions() as repository:
             if not await repository.revoke_session(
-                identity.user.id, identity.session.id, utc_now()
+                identity.session.id, utc_now(), owner_user_id=identity.user.id
             ):
                 raise ApiException("AUTH_UNAUTHENTICATED")

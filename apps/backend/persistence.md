@@ -38,7 +38,56 @@ async def run(config_dir: Path) -> SchemaRevision:
 - SQLAlchemy `JSON` 字段统一经过 engine 的 serializer/deserializer，保留标准 JSON 值语义和中文；拒绝 NaN/Infinity、非字符串 key、tuple 与自定义对象。JSON 值按整值替换写入；不要依赖 ORM 自动发现嵌套原地修改。record 含集合时需在 adapter 边界转为深度不可变结构。
 - 需要查询、关联、唯一约束或状态流转的数据必须使用规范化列和表。JSON 仅承载不参与这些操作的有限附加属性；不建立通用大 JSON 业务状态表。
 - 未来 ORM model 继承 `sqlite.base.Base`，约束使用统一命名；CHECK 约束必须显式命名。新 model 要加入迁移 metadata 的显式导入，再生成、审查并测试 revision。
-- tenant-scoped Repository 必须显式传入 tenant ID，并测试过滤，不使用默认或全局 tenant。
+- tenant-scoped Repository 必须显式传入 `owner_user_id`，本地 tenant ID 从该值派生，并测试过滤，不使用默认或全局 tenant。
+
+## 强制归属与租户上下文
+
+`CurrentUser` 是已验证的最小用户身份；HTTP 层通过 `auth.api.current_user` 从认证会话派生，不能从 URL、请求 body、header 中的 owner/tenant 值构造。`OwnerScope` 是不可变的归属上下文，`owner_user_id` 必填，`tenant_id` 为只读派生属性。本地模型里二者都等于 `CurrentUser.user_id`，仍保留 owner 与 tenant 的不同语义。上下文按请求显式传递，不存入 module scope、默认参数或全局 tenant。
+
+受保护 Repository 的 Protocol 和实现都采用 `async def get(resource_id: str, *, owner_user_id: str)` 这类签名；列表、创建、读取、更新、删除、批量操作、计数同样要求 keyword-only owner。`memory.scope.require_scope_id` 在访问 session 前拒绝空值、错误类型、首尾空白与控制字符。写入必须由 scope 填充 owner；如果入参 record 已含 owner，先调用 `OwnerScope.require_owner` 验证，更新 payload 不允许改变 owner 或父归属。
+
+SQLite 的 `scoped_select`、`scoped_update`、`scoped_delete` 和 `owner_predicate` 在构造 SQL 时绑定 owner 值。用 `.where()` 追加资源 ID、父 ID、状态版本等条件，不允许替换或丢弃 owner 条件。避免 `session.get(Model, resource_id)`、无 scope 的全表读取和 service 层补检查；即使 identity map 已缓存其他用户对象，scoped SELECT 也必须重新执行 owner 查询。
+
+```python
+statement = scoped_select(
+    DocumentRow, DocumentRow.owner_user_id, owner_user_id=owner_user_id
+).where(DocumentRow.id == document_id, DocumentRow.knowledge_base_id == knowledge_base_id)
+```
+
+这里的 `DocumentRow` 仅说明未来接口用法，并非现有业务表。领域调用方只收到不可变记录或缺失结果，不收到 session/ORM。新 Repository 按实际领域定义 Protocol，不继承通用 CRUD 来隐藏 owner 参数。
+
+受保护父资源查询必须带 owner。父列表入口先用 scoped 查询确认父存在于本用户 scope，再读取子列表；未找到父时不能返回空列表。父子创建可采用带 owner 的 `INSERT ... SELECT`，子资源读取和写入必须同时限定 owner、parent ID、child ID。未来 schema 以 `(owner_user_id, parent_id)` 复合外键关联父 `(owner_user_id, id)`，避免写入跨用户父子关系；迁移测试必须验证约束。可变父关系需要同事务验证且带条件写入，不得依赖早先单独查询的结果。
+
+Repository 以 `None` 表示该 scope 中缺失，更新/删除返回可选资源 ID。使用布尔值或受影响行数的领域调用方必须将 false/零行显式转换为缺失，不能直接传给 `require_owned_resource`。HTTP 层用该 helper 统一将 `None` 转换成 `AUTH_FORBIDDEN` 403。父资源不存在、他人资源、子资源不存在或父子不匹配均不返回资源名、owner、查询细节，也不再做全局存在性查询；合法空父集合正常返回空列表。未知公开 URL 的既有 404 不属于受保护资源查询。
+
+具名非受保护例外仅有：基础设施 `schema_revision`；认证引导的 `add_user`（注册）、`find_user_by_email`（验证密码）、`resolve_token_hash`（按会话摘要恢复身份）。它们不提供通用业务查询能力，不向客户端暴露记录/凭据。`get_user` 只查当前 owner；`add_session`、`get_session`、`touch_session`、`revoke_session` 均显式带 owner。登出仅 revoke 当前 session，不删除 users 或业务资源，其他会话及其他用户资源保留。
+
+## 向量边界
+
+`memory.vector_scope` 是不连接 Milvus 的可执行约定。标量字段使用 `vector_ownership(owner_user_id=...)`，metadata 使用 `vector_metadata(extra, owner_user_id=...)`；两处都保留 `tenantId` 和 `ownerUserId`。附加 metadata 不能覆盖这两个归属字段。
+
+`allowed_knowledge_base_ids` 必须来自当前 owner 的 scoped Repository 授权结果，不能直接传客户端提交的 KB 列表。`search_filter` 只生成 `tenantId == 当前用户 and knowledgeBaseId in 授权列表`；`ownerUserId` 用于追溯，不重复加入搜索条件。可选 document/metadata 条件由 retrieval tool 通过 `scoped_recall` 的 `post_filter` 在召回后执行，不能混进 Milvus 搜索 filter，也不提供原始表达式透传入口。
+
+空 KB 列表的 `search_filter` 返回 `None`，这表示必须停止调用，不是可传给 Milvus 的“无过滤”。优先使用 `scoped_recall`：只有非空合法 scope 才调用 `recall`，未来 adapter 必须在该回调内部创建/获取 Milvus 客户端、读取连接配置和发起请求。空 KB 时不连接、不初始化客户端、不执行后过滤。即使 KB 为空，空 tenant 也应先失败。
+
+`document_delete_filter` 只有在 owner、knowledge base、document 三个值全部有效时才返回删除条件；输出包含 `tenantId + knowledgeBaseId + documentId`，禁止无 scope delete 或省略某个维度。调用方先生成合法条件再连接。值通过 JSON 字符串转义，不能作为表达式拼接；ID 去重只影响授权集合的重复成员。
+
+表达式中的相等、`in` 和逻辑 `and` 依据 [Milvus 标量过滤规则](https://milvus.io/docs/boolean.md)（2026-09-08 查阅）。本 Change 只有纯函数、回调与本地合同证据，尚无真实 Milvus adapter 或 live 验收。
+
+## 后续资源接入
+
+以下资源全部继承上述边界：chat、knowledge、index jobs、vector、MCP、AIOps、evidence、reports、cases、feedback、audit、background jobs。
+
+HTTP path 先扩展 canonical OpenAPI，再使用 `protected_router()` 和 `current_user` 接入；bearer、401/403 复用见 contracts README。MCP/tool 的执行上下文由后端注入 owner，LLM/tool arguments 不能选择 tenant。任务入队时保存发起用户 owner，执行时显式重建 `OwnerScope`、重新验证父资源归属，进度、结果、重试、取消和清理均使用同一 scope。任务的持久 owner 不因用户登出而丢失；是否继续执行按具体业务 Change 决定，不通过删除持久数据处理登出。
+
+缓存 key、文件/对象路径、事件订阅、审计与向量归属必须含 owner/tenant；禁止用全局 key 或仅资源 ID 复用他人结果。删除、级联和后台清理同样带完整 scope。
+
+新增 Repository 的必需验收：
+
+1. 调用 `tests/scope_contract.py` 的 `assert_owner_parameter_contract`，逐方法覆盖必填 keyword-only owner、空值/类型失败，并断言 session 未调用。
+2. 参照 `tests/tenant_probe.py` 与 `test_tenant_repository.py`，用两个 owner 验证列表、读、创建、更新、删除、相同资源 ID、父子 ID 混用、复合外键和真实 SQL owner 条件。探针使用独立 metadata，不能注册为生产表。
+3. 参照 `test_tenant_api.py`，以真实本地认证和临时 SQLite 验证缺失/越权 HTTP 响应完全等价、无认证 401、并发上下文、登出保留资源和合法访问成功。
+4. 前端受保护 store 注册清理回调，通过带版本隔离的认证客户端请求；登出、401、用户切换清空可见状态并丢弃迟到成功，403 保留有效认证。
 
 ## 测试
 

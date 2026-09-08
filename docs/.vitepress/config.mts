@@ -8,6 +8,7 @@ const activeItems = [
 const archivedItems = [
   { text: "setup-sqlite-repository-foundation", link: "/changes/archive/2026-09-08-setup-sqlite-repository-foundation/" },
   { text: "establish-project-foundation", link: "/changes/archive/2026-09-08-establish-project-foundation/" },
+  { text: "enforce-tenant-isolation", link: "/changes/archive/2026-09-08-enforce-tenant-isolation/" },
   { text: "define-api-and-sse-contracts", link: "/changes/archive/2026-09-08-define-api-and-sse-contracts/" },
   { text: "add-user-authentication", link: "/changes/archive/2026-09-08-add-user-authentication/" },
   { text: "repair-wiki-sync-workflow", link: "/changes/archive/2026-08-28-repair-wiki-sync-workflow/" },

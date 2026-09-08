@@ -492,6 +492,13 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                                   'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
                               '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                    'schema': {'type': 'string',
+                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                  'WWW-Authenticate': {'description': 'HTTP '
+                                                                                      'bearer '
+                                                                                      '认证挑战。',
+                                                                       'schema': {'type': 'string'}}}},
+                              '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                   'schema': {'type': 'string',
                                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
  'getCurrentUser': {'parameters': [{'name': 'X-Request-ID',
                                     'in': 'header',
@@ -512,4 +519,25 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
                                   '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                        'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                      'WWW-Authenticate': {'description': 'HTTP '
+                                                                                          'bearer '
+                                                                                          '认证挑战。',
+                                                                           'schema': {'type': 'string'}}}},
+                                  '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
                                                                                   'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
+
+PROTECTED_OPERATION: dict[str, Any] = {'security': [{'BearerAuth': []}],
+ 'responses': {'401': {'description': '缺少有效认证会话。',
+                       'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                    'schema': {'type': 'string',
+                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                   'WWW-Authenticate': {'description': 'HTTP bearer 认证挑战。',
+                                                        'schema': {'type': 'string'}}},
+                       'content': {'application/json': {'schema': {'$ref': '#/components/schemas/ApiFailure'}}}},
+               '403': {'description': '受保护资源不可访问或不存在；不披露资源细节。',
+                       'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                    'schema': {'type': 'string',
+                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}},
+                       'content': {'application/json': {'schema': {'$ref': '#/components/schemas/ApiFailure'}}}}}}
