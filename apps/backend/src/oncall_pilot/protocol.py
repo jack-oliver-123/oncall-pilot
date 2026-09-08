@@ -59,7 +59,10 @@ class ApiException(Exception):
 
 async def api_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ApiException)
-    return failure(exc.error, request.state.request_id)
+    response = failure(exc.error, request.state.request_id)
+    if exc.error.httpStatus == 401:
+        response.headers["WWW-Authenticate"] = "Bearer"
+    return response
 
 
 async def validation_exception_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -116,7 +119,10 @@ class RequestIdMiddleware:
             nonlocal started
             if message["type"] == "http.response.start":
                 started = True
-                MutableHeaders(scope=message)["X-Request-ID"] = request_id
+                outgoing = MutableHeaders(scope=message)
+                outgoing["X-Request-ID"] = request_id
+                if scope.get("path", "").startswith("/auth/"):
+                    outgoing["Cache-Control"] = "no-store"
             await send(message)
 
         try:

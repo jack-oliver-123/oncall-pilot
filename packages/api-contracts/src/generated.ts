@@ -95,7 +95,23 @@ export type ErrorSystemUnavailable = {
   "details"?: Record<string, JsonValue>;
 };
 
-export type ApiError = ErrorAuthUnauthenticated | ErrorAuthForbidden | ErrorBusinessNotFound | ErrorBusinessConflict | ErrorValidationBadRequest | ErrorValidationMethodNotAllowed | ErrorValidationRequestInvalid | ErrorSystemRateLimited | ErrorSystemInternalError | ErrorSystemUnavailable;
+export type AuthInvalidCredentialsError = {
+  "code": "AUTH_INVALID_CREDENTIALS";
+  "category": "AUTH";
+  "httpStatus": 401;
+  "message": string;
+  "details"?: Record<string, JsonValue>;
+};
+
+export type BusinessEmailAlreadyExistsError = {
+  "code": "BUSINESS_EMAIL_ALREADY_EXISTS";
+  "category": "BUSINESS";
+  "httpStatus": 409;
+  "message": string;
+  "details"?: Record<string, JsonValue>;
+};
+
+export type ApiError = ErrorAuthUnauthenticated | ErrorAuthForbidden | ErrorBusinessNotFound | ErrorBusinessConflict | ErrorValidationBadRequest | ErrorValidationMethodNotAllowed | ErrorValidationRequestInvalid | ErrorSystemRateLimited | ErrorSystemInternalError | ErrorSystemUnavailable | AuthInvalidCredentialsError | BusinessEmailAlreadyExistsError;
 
 export type ApiSuccess = {
   "ok": true;
@@ -225,6 +241,46 @@ export type ErrorEvent = {
 
 export type SseEvent = ContentDelta | ReasoningDelta | ToolCall | ReferenceSource | TaskStatus | Report | Complete | ErrorEvent;
 
+export type AuthUser = {
+  "id": string;
+  "email": string;
+  "createdAt": Timestamp;
+};
+
+export type RegisterRequest = {
+  "email": string;
+  "password": string;
+};
+
+export type LoginRequest = {
+  "email": string;
+  "password": string;
+};
+
+export type LoginData = {
+  "user": AuthUser;
+  "token": string;
+  "tokenType": "Bearer";
+};
+
+export type UserResponse = {
+  "ok": true;
+  "data": AuthUser;
+  "meta": ResponseMeta;
+};
+
+export type LoginResponse = {
+  "ok": true;
+  "data": LoginData;
+  "meta": ResponseMeta;
+};
+
+export type LogoutResponse = {
+  "ok": true;
+  "data": null;
+  "meta": ResponseMeta;
+};
+
 export const errorCatalog = {
   "AUTH_UNAUTHENTICATED": {
     "code": "AUTH_UNAUTHENTICATED",
@@ -285,6 +341,18 @@ export const errorCatalog = {
     "category": "SYSTEM",
     "httpStatus": 503,
     "message": "服务暂时不可用，请稍后重试。"
+  },
+  "AUTH_INVALID_CREDENTIALS": {
+    "code": "AUTH_INVALID_CREDENTIALS",
+    "category": "AUTH",
+    "httpStatus": 401,
+    "message": "邮箱或密码错误。"
+  },
+  "BUSINESS_EMAIL_ALREADY_EXISTS": {
+    "code": "BUSINESS_EMAIL_ALREADY_EXISTS",
+    "category": "BUSINESS",
+    "httpStatus": 409,
+    "message": "该邮箱已注册。"
   }
 } as const;
 export type ErrorCode = keyof typeof errorCatalog;
@@ -293,10 +361,34 @@ export const operations = {
     "path": "/health",
     "method": "GET",
     "responseSchema": "HealthResponse"
+  },
+  "registerUser": {
+    "path": "/auth/register",
+    "method": "POST",
+    "responseSchema": "UserResponse"
+  },
+  "loginUser": {
+    "path": "/auth/login",
+    "method": "POST",
+    "responseSchema": "LoginResponse"
+  },
+  "logoutUser": {
+    "path": "/auth/logout",
+    "method": "POST",
+    "responseSchema": "LogoutResponse"
+  },
+  "getCurrentUser": {
+    "path": "/auth/me",
+    "method": "GET",
+    "responseSchema": "UserResponse"
   }
 } as const;
 export interface OperationResponses {
   getHealth: HealthResponse;
+  registerUser: UserResponse;
+  loginUser: LoginResponse;
+  logoutUser: LogoutResponse;
+  getCurrentUser: UserResponse;
 }
 export interface SchemaTypes {
   RequestId: RequestId;
@@ -314,6 +406,8 @@ export interface SchemaTypes {
   ErrorSystemRateLimited: ErrorSystemRateLimited;
   ErrorSystemInternalError: ErrorSystemInternalError;
   ErrorSystemUnavailable: ErrorSystemUnavailable;
+  AuthInvalidCredentialsError: AuthInvalidCredentialsError;
+  BusinessEmailAlreadyExistsError: BusinessEmailAlreadyExistsError;
   ApiError: ApiError;
   ApiSuccess: ApiSuccess;
   ApiFailure: ApiFailure;
@@ -332,4 +426,11 @@ export interface SchemaTypes {
   Complete: Complete;
   ErrorEvent: ErrorEvent;
   SseEvent: SseEvent;
+  AuthUser: AuthUser;
+  RegisterRequest: RegisterRequest;
+  LoginRequest: LoginRequest;
+  LoginData: LoginData;
+  UserResponse: UserResponse;
+  LoginResponse: LoginResponse;
+  LogoutResponse: LogoutResponse;
 }

@@ -23,11 +23,11 @@ async def run(config_dir: Path) -> SchemaRevision:
             return await read_revision(SQLiteRepository(session))
 ```
 
-领域函数只接收 Repository，不接收 ORM model、engine 或 session。未来 PostgreSQL adapter 实现相同领域 Protocol，在组合层替换；本次只实现 schema revision contract，不声称覆盖未来领域权限、查询或 CRUD。
+领域函数只接收 Repository，不接收 ORM model、engine 或 session。未来 PostgreSQL adapter 实现相同领域 Protocol，在组合层替换；基础层提供 schema revision contract；认证层另提供 AuthRepositoryPort，AuthService 通过 AuthTransactions 获取该 Protocol，组合层在事务内组装 SQLite adapter。
 
 `open_database` 读取 `project.json` 与可选 `user.project.json` 的深合并结果。`database.url` 必须是 `sqlite+aiosqlite:///...` 文件 URL；相对数据库路径以配置目录的父目录解析，与进程 cwd 无关。支持绝对路径、空格与百分号文件名，不支持内存数据库、SQLite URI/query 模式或其他驱动。没有环境变量覆盖入口。
 
-初始化只建立 engine/session factory 和所需父目录，首次连接才创建数据库文件；不会自动迁移或建表。未迁移数据库调用 `schema_revision()` 抛出 `SchemaNotInitialized`。当前 FastAPI app factory 和 `/health` 不初始化数据库；未来领域 Change 可在 lifespan 中持有该上下文。
+初始化只建立 engine/session factory 和所需父目录，首次连接才创建数据库文件；不会自动迁移或建表。未迁移数据库调用 `schema_revision()` 抛出 `SchemaNotInitialized`。FastAPI app factory 只读取配置；lifespan 显式持有并关闭数据库资源，`/health` 本身不查询数据库。
 
 每个 `transaction()` 创建独立 async session，正常退出提交，异常或取消退出回滚并关闭。多个 Repository 通过同一个 session 组成原子工作单元；adapter 不调用 commit，不把 session 传入领域。不跨协程共享 session，不在事务中等待网络或 LLM。SQLite 同时只有一个 writer，忙等待上限 5 秒；NullPool 每次归还即关闭连接，不承诺无界并发吞吐。所有在途事务结束后再关闭 Database，关闭后拒绝新事务。
 
@@ -44,4 +44,4 @@ async def run(config_dir: Path) -> SchemaRevision:
 
 `tests/migration_helpers.py` 提供临时 JSON 配置与显式 Alembic 命令 helper；`migrated_config` / `database` fixture 使用每个测试独立的 `tmp_path`。禁止引用开发者真实配置或 `var/memory.sqlite3`。测试 fixture 会关闭资源，临时文件由 pytest 管理。
 
-迁移测试在原始空数据库比较 `Base.metadata`，另用未迁移表探针确认比较器能发现漂移。事务/字段测试的表只在测试内创建，不进入生产 metadata。基础 revision 无业务表是范围限制，不代表已完成后续领域 schema 验收。
+迁移测试在空数据库升级至当前 head 后比较 `Base.metadata`，另用未迁移表探针确认比较器能发现漂移。事务/字段测试的探针表只在测试内创建，不进入生产 metadata。`0001_persistence_foundation` 无领域表；`0002_user_authentication` 增加 `users` 和 `auth_sessions`，测试覆盖重复升级、降级再升级、唯一约束、外键及 token hash 格式。

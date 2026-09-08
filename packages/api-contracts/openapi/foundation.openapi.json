@@ -99,6 +99,484 @@
           }
         }
       }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "registerUser",
+        "tags": [
+          "auth"
+        ],
+        "summary": "注册用户",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "认证操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "loginUser",
+        "tags": [
+          "auth"
+        ],
+        "summary": "登录",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "认证操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logoutUser",
+        "tags": [
+          "auth"
+        ],
+        "summary": "登出",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "认证操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "getCurrentUser",
+        "tags": [
+          "auth"
+        ],
+        "summary": "查询当前用户",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "认证操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -440,6 +918,66 @@
         ],
         "additionalProperties": false
       },
+      "AuthInvalidCredentialsError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "AUTH_INVALID_CREDENTIALS"
+          },
+          "category": {
+            "const": "AUTH"
+          },
+          "httpStatus": {
+            "const": 401
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "邮箱或密码错误。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "BusinessEmailAlreadyExistsError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "const": "BUSINESS_EMAIL_ALREADY_EXISTS"
+          },
+          "category": {
+            "const": "BUSINESS"
+          },
+          "httpStatus": {
+            "const": 409
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "default": "该邮箱已注册。"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "code",
+          "category",
+          "httpStatus",
+          "message"
+        ],
+        "additionalProperties": false
+      },
       "ApiError": {
         "oneOf": [
           {
@@ -471,6 +1009,12 @@
           },
           {
             "$ref": "#/components/schemas/ErrorSystemUnavailable"
+          },
+          {
+            "$ref": "#/components/schemas/AuthInvalidCredentialsError"
+          },
+          {
+            "$ref": "#/components/schemas/BusinessEmailAlreadyExistsError"
           }
         ],
         "discriminator": {
@@ -485,7 +1029,9 @@
             "VALIDATION_REQUEST_INVALID": "#/components/schemas/ErrorValidationRequestInvalid",
             "SYSTEM_RATE_LIMITED": "#/components/schemas/ErrorSystemRateLimited",
             "SYSTEM_INTERNAL_ERROR": "#/components/schemas/ErrorSystemInternalError",
-            "SYSTEM_UNAVAILABLE": "#/components/schemas/ErrorSystemUnavailable"
+            "SYSTEM_UNAVAILABLE": "#/components/schemas/ErrorSystemUnavailable",
+            "AUTH_INVALID_CREDENTIALS": "#/components/schemas/AuthInvalidCredentialsError",
+            "BUSINESS_EMAIL_ALREADY_EXISTS": "#/components/schemas/BusinessEmailAlreadyExistsError"
           }
         }
       },
@@ -1049,6 +1595,151 @@
             "error": "#/components/schemas/ErrorEvent"
           }
         }
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "email": {
+            "type": "string",
+            "pattern": "^[^\\s@]+@[^\\s@]+$"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "pattern": "^[ \\t]*[^\\s@]+@[^\\s@]+[ \\t]*$"
+          },
+          "password": {
+            "type": "string",
+            "pattern": "^[\\s\\S]{8,128}$"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "pattern": "^[ \\t]*[^\\s@]+@[^\\s@]+[ \\t]*$"
+          },
+          "password": {
+            "type": "string",
+            "pattern": "^[\\s\\S]{8,128}$"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "LoginData": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "tokenType": {
+            "const": "Bearer"
+          }
+        },
+        "required": [
+          "user",
+          "token",
+          "tokenType"
+        ],
+        "additionalProperties": false
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthUser"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "LogoutResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "type": "null"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }

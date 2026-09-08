@@ -74,6 +74,7 @@ def create_engine(url: URL) -> AsyncEngine:
     engine = create_async_engine(
         url,
         poolclass=NullPool,
+        hide_parameters=True,
         json_serializer=serialize_json,
         json_deserializer=deserialize_json,
     )

@@ -9,6 +9,7 @@ const archivedItems = [
   { text: "setup-sqlite-repository-foundation", link: "/changes/archive/2026-09-08-setup-sqlite-repository-foundation/" },
   { text: "establish-project-foundation", link: "/changes/archive/2026-09-08-establish-project-foundation/" },
   { text: "define-api-and-sse-contracts", link: "/changes/archive/2026-09-08-define-api-and-sse-contracts/" },
+  { text: "add-user-authentication", link: "/changes/archive/2026-09-08-add-user-authentication/" },
   { text: "repair-wiki-sync-workflow", link: "/changes/archive/2026-08-28-repair-wiki-sync-workflow/" },
   { text: "integrate-matt-skills-with-openspec", link: "/changes/archive/2026-08-26-integrate-matt-skills-with-openspec/" },
   { text: "improve-claude-md-guidance", link: "/changes/archive/2026-08-26-improve-claude-md-guidance/" },

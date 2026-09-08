@@ -13,6 +13,8 @@
 
 当前成功响应为 `{ok:true,data,meta:{requestId}}`，失败响应为 `{ok:false,error:{code,category,httpStatus,message,details?},meta:{requestId}}`。`/health` 的 data 为 `{status:"ok"}`，只表示进程存活。四类错误前缀为 AUTH_*、BUSINESS_*、VALIDATION_*、SYSTEM_*；message 使用安全默认值，details 只能放明确允许公开的内容。
 
+认证合同包含 `RegisterRequest`、`LoginRequest`、`AuthUser`、`LoginData`、`UserResponse`、`LoginResponse` 和 `LogoutResponse`。注册、登录为公开 POST，`/auth/me` GET 和 `/auth/logout` POST 使用 `BearerAuth` HTTP bearer scheme。登录返回 opaque token，无 expiresAt；公开用户仅有 id、email、createdAt。错误密码与未知账号复用 `AUTH_INVALID_CREDENTIALS`，重复邮箱使用 `BUSINESS_EMAIL_ALREADY_EXISTS`，失效会话复用 `AUTH_UNAUTHENTICATED`。合同验收比较实际请求、响应与 security，所有字符串正则采用 Unicode 字符语义。
+
 SSE 包含 content.delta、reasoning.delta、tool.call、reference.source、task.status、report、complete、error，公共字段为 id/type/channel/timestamp。tool.call 按 started/delta/completed/failed 收窄；失败状态及 error 事件复用 ApiError。合同定义 payload 形状，后续业务负责同一 callId 的状态先后关系。
 
 前端 `apiClient` 根据 operation 返回 typed data；`sseClient` 返回共享事件的异步迭代器。两者通过参数注入 fetch/request ID/bearer/signal，不读取本机秘密。网络异常和 ProtocolError 不伪装成 ApiClientError。SSE parser 支持 UTF-8 分块、三类换行与多行 data，EOF 不派发未结束 frame；单帧缓存上限为 1 MiB UTF-16 字符单位，不自动重连。当前尚无业务 SSE endpoint。

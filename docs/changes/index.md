@@ -15,6 +15,7 @@ title: OpenSpec 变更
 - [setup-sqlite-repository-foundation](/changes/archive/2026-09-08-setup-sqlite-repository-foundation/)
 - [establish-project-foundation](/changes/archive/2026-09-08-establish-project-foundation/)
 - [define-api-and-sse-contracts](/changes/archive/2026-09-08-define-api-and-sse-contracts/)
+- [add-user-authentication](/changes/archive/2026-09-08-add-user-authentication/)
 - [repair-wiki-sync-workflow](/changes/archive/2026-08-28-repair-wiki-sync-workflow/)
 - [integrate-matt-skills-with-openspec](/changes/archive/2026-08-26-integrate-matt-skills-with-openspec/)
 - [improve-claude-md-guidance](/changes/archive/2026-08-26-improve-claude-md-guidance/)
