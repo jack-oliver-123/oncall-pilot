@@ -1,3 +1,2 @@
-export interface HealthResponse {
-  status: "ok";
-}
+export * from "./generated";
+export { parseContract, ProtocolError } from "./validation";

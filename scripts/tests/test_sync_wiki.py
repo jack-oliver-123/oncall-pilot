@@ -112,6 +112,23 @@ class WikiSyncTests(unittest.TestCase):
         page = self.root / "docs" / "changes" / "archive" / archive_name / "index.md"
         self.assertIn("## 规格变更", page.read_text(encoding="utf-8"))
 
+    def test_same_day_archive_uses_created_date_before_name(self) -> None:
+        requirement = "Same-day contract evolution"
+        foundation = self.create_change("2026-09-08-z-foundation", archived=True, delta_requirement=requirement)
+        contracts = self.create_change("2026-09-08-a-contracts", archived=True, delta_requirement=requirement)
+        (foundation / ".openspec.yaml").write_text("schema: spec-driven\ncreated: 2026-08-28\n", encoding="utf-8")
+        (contracts / ".openspec.yaml").write_text("schema: spec-driven\ncreated: 2026-09-08\n", encoding="utf-8")
+        delta = contracts / "specs/wiki-sync/spec.md"
+        delta.write_text(delta.read_text(encoding="utf-8").replace("ADDED", "MODIFIED").replace("生成 WIKI", "生成新版 WIKI"), encoding="utf-8")
+        self.create_main_spec(requirement)
+        main = self.root / "openspec/specs/wiki-sync/spec.md"
+        main.write_text(main.read_text(encoding="utf-8").replace("生成 WIKI", "生成新版 WIKI"), encoding="utf-8")
+        self.assertEqual(sync_wiki(self.root, "all").archive_count, 2)
+        verify_wiki(self.root)
+        previous = self.managed_files()
+        sync_wiki(self.root, "all")
+        self.assertEqual(previous, self.managed_files())
+
     def test_rejects_unsynchronized_delta_before_writing(self) -> None:
         archive_name = "2026-08-26-unsynced-change"
         self.create_change(

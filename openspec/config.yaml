@@ -1,5 +1,11 @@
 schema: spec-driven
 
+rules:
+  proposal:
+    - 涉及 HTTP endpoint 或 SSE 的提案必须先声明 packages/api-contracts 中的 path、schema、错误码与事件合同扩展，再规划实现；不得自造临时 payload。
+  tasks:
+    - 涉及协议的任务先修改合同并生成，再实现 endpoint/consumer；必须包含生成漂移、跨语言合同和实际路径对齐检查。
+
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 context: |

@@ -9,6 +9,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 def test_importing_all_package_modules_has_no_application_io_side_effects() -> None:
     script = r'''
+import builtins
 import importlib
 import pkgutil
 import socket
@@ -27,7 +28,10 @@ def forbidden(*args, **kwargs):
 Path.open = forbidden
 Path.read_text = forbidden
 Path.write_text = forbidden
+builtins.open = forbidden
 socket.create_connection = forbidden
+socket.socket.connect = forbidden
+socket.socket.connect_ex = forbidden
 sqlite3.connect = forbidden
 fastapi.FastAPI = forbidden
 httpx.Client = forbidden
@@ -35,6 +39,18 @@ httpx.AsyncClient = forbidden
 sqlalchemy.create_engine = forbidden
 sqlalchemy.ext.asyncio.create_async_engine = forbidden
 uvicorn.run = forbidden
+
+for probe in (
+    lambda: builtins.open("unexpected.txt", "w"),
+    lambda: socket.socket().connect(("127.0.0.1", 1)),
+    lambda: socket.socket().connect_ex(("127.0.0.1", 1)),
+):
+    try:
+        probe()
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("副作用监控未阻断负向探针")
 
 import oncall_pilot
 

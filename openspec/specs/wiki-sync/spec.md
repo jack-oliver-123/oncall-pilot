@@ -71,6 +71,11 @@
 - **THEN** 同步器 SHALL 在写入 WIKI 输出前以非零状态停止
 - **AND** 错误 SHALL 指出 capability、operation 与格式问题
 
+#### Scenario: 同日归档覆盖遵循 OpenSpec 创建顺序
+- **WHEN** 两个同日归档 Change 先后修改同一 requirement，且 OpenSpec created 日期能区分其创建先后
+- **THEN** 校验器 SHALL 按归档日期、created 日期、目录名依次折叠 delta，以较晚创建的 Change 校验 main spec
+- **AND** WIKI 页面导航顺序和幂等性 SHALL 保持不变
+
 ### Requirement: Idempotent and verifiable WIKI output
 
 对同一 OpenSpec 状态重复运行同步 SHALL 产生相同的页面、索引和导航；生成后与独立校验均 SHALL 校验目录集合、include 目标以及索引和导航顺序的一致性。独立校验 SHALL 仅从当前 OpenSpec 源构造期望输出，并与受管页面、索引和导航全文比较；SHALL NOT 把受检 WIKI 中的生成字段当作期望值来源。
