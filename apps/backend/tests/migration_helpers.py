@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
-HEAD = "0001_persistence_foundation"
+HEAD = "0002_user_authentication"
 
 
 def write_database_config(root: Path, url: str = "sqlite+aiosqlite:///var/test.db") -> Path:

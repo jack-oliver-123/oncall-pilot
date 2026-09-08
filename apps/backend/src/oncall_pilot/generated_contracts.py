@@ -153,7 +153,25 @@ class ErrorSystemUnavailable(WireModel):
     details: dict[str, JsonValue] = Field(default_factory=dict)
 
 
-ApiError: TypeAlias = Annotated[ErrorAuthUnauthenticated | ErrorAuthForbidden | ErrorBusinessNotFound | ErrorBusinessConflict | ErrorValidationBadRequest | ErrorValidationMethodNotAllowed | ErrorValidationRequestInvalid | ErrorSystemRateLimited | ErrorSystemInternalError | ErrorSystemUnavailable, Field(discriminator='code')]
+class AuthInvalidCredentialsError(WireModel):
+    """AuthInvalidCredentialsError 合同。"""
+    code: Literal['AUTH_INVALID_CREDENTIALS']
+    category: Literal['AUTH']
+    httpStatus: Literal[401]
+    message: Annotated[str, Field(min_length=1)]
+    details: dict[str, JsonValue] = Field(default_factory=dict)
+
+
+class BusinessEmailAlreadyExistsError(WireModel):
+    """BusinessEmailAlreadyExistsError 合同。"""
+    code: Literal['BUSINESS_EMAIL_ALREADY_EXISTS']
+    category: Literal['BUSINESS']
+    httpStatus: Literal[409]
+    message: Annotated[str, Field(min_length=1)]
+    details: dict[str, JsonValue] = Field(default_factory=dict)
+
+
+ApiError: TypeAlias = Annotated[ErrorAuthUnauthenticated | ErrorAuthForbidden | ErrorBusinessNotFound | ErrorBusinessConflict | ErrorValidationBadRequest | ErrorValidationMethodNotAllowed | ErrorValidationRequestInvalid | ErrorSystemRateLimited | ErrorSystemInternalError | ErrorSystemUnavailable | AuthInvalidCredentialsError | BusinessEmailAlreadyExistsError, Field(discriminator='code')]
 
 
 class ApiSuccess(WireModel):
@@ -300,7 +318,54 @@ class ErrorEvent(WireModel):
 
 SseEvent: TypeAlias = Annotated[ContentDelta | ReasoningDelta | ToolCall | ReferenceSource | TaskStatus | Report | Complete | ErrorEvent, Field(discriminator='type')]
 
-ErrorCode: TypeAlias = Literal['AUTH_UNAUTHENTICATED', 'AUTH_FORBIDDEN', 'BUSINESS_NOT_FOUND', 'BUSINESS_CONFLICT', 'VALIDATION_BAD_REQUEST', 'VALIDATION_METHOD_NOT_ALLOWED', 'VALIDATION_REQUEST_INVALID', 'SYSTEM_RATE_LIMITED', 'SYSTEM_INTERNAL_ERROR', 'SYSTEM_UNAVAILABLE']
+
+class AuthUser(WireModel):
+    """AuthUser 合同。"""
+    id: Annotated[str, Field(pattern='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')]
+    email: Annotated[str, Field(pattern='^[^\\s@]+@[^\\s@]+$')]
+    createdAt: Timestamp
+
+
+class RegisterRequest(WireModel):
+    """RegisterRequest 合同。"""
+    email: Annotated[str, Field(pattern='^[ \\t]*[^\\s@]+@[^\\s@]+[ \\t]*$')]
+    password: Annotated[str, Field(pattern='^[\\s\\S]{8,128}$')]
+
+
+class LoginRequest(WireModel):
+    """LoginRequest 合同。"""
+    email: Annotated[str, Field(pattern='^[ \\t]*[^\\s@]+@[^\\s@]+[ \\t]*$')]
+    password: Annotated[str, Field(pattern='^[\\s\\S]{8,128}$')]
+
+
+class LoginData(WireModel):
+    """LoginData 合同。"""
+    user: AuthUser
+    token: Annotated[str, Field(pattern='^[A-Za-z0-9_-]{43}$')]
+    tokenType: Literal['Bearer']
+
+
+class UserResponse(WireModel):
+    """UserResponse 合同。"""
+    ok: Literal[True]
+    data: AuthUser
+    meta: ResponseMeta
+
+
+class LoginResponse(WireModel):
+    """LoginResponse 合同。"""
+    ok: Literal[True]
+    data: LoginData
+    meta: ResponseMeta
+
+
+class LogoutResponse(WireModel):
+    """LogoutResponse 合同。"""
+    ok: Literal[True]
+    data: None
+    meta: ResponseMeta
+
+ErrorCode: TypeAlias = Literal['AUTH_UNAUTHENTICATED', 'AUTH_FORBIDDEN', 'BUSINESS_NOT_FOUND', 'BUSINESS_CONFLICT', 'VALIDATION_BAD_REQUEST', 'VALIDATION_METHOD_NOT_ALLOWED', 'VALIDATION_REQUEST_INVALID', 'SYSTEM_RATE_LIMITED', 'SYSTEM_INTERNAL_ERROR', 'SYSTEM_UNAVAILABLE', 'AUTH_INVALID_CREDENTIALS', 'BUSINESS_EMAIL_ALREADY_EXISTS']
 
 ERROR_CATALOG: dict[ErrorCode, dict[str, JsonValue]] = {'AUTH_UNAUTHENTICATED': {'code': 'AUTH_UNAUTHENTICATED',
                           'category': 'AUTH',
@@ -341,7 +406,15 @@ ERROR_CATALOG: dict[ErrorCode, dict[str, JsonValue]] = {'AUTH_UNAUTHENTICATED': 
  'SYSTEM_UNAVAILABLE': {'code': 'SYSTEM_UNAVAILABLE',
                         'category': 'SYSTEM',
                         'httpStatus': 503,
-                        'message': '服务暂时不可用，请稍后重试。'}}
+                        'message': '服务暂时不可用，请稍后重试。'},
+ 'AUTH_INVALID_CREDENTIALS': {'code': 'AUTH_INVALID_CREDENTIALS',
+                              'category': 'AUTH',
+                              'httpStatus': 401,
+                              'message': '邮箱或密码错误。'},
+ 'BUSINESS_EMAIL_ALREADY_EXISTS': {'code': 'BUSINESS_EMAIL_ALREADY_EXISTS',
+                                   'category': 'BUSINESS',
+                                   'httpStatus': 409,
+                                   'message': '该邮箱已注册。'}}
 
 OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name': 'X-Request-ID',
                                'in': 'header',
@@ -359,4 +432,84 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
                              'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                       'schema': {'type': 'string',
-                                                                                 'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
+                                                                                 'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'registerUser': {'parameters': [{'name': 'X-Request-ID',
+                                  'in': 'header',
+                                  'required': False,
+                                  'description': '合法值透传；缺失或非法值生成新的标识。',
+                                  'schema': {'type': 'string'}}],
+                  'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                     'schema': {'type': 'string',
+                                                                                'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                     'schema': {'type': 'string',
+                                                                                'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                     'schema': {'type': 'string',
+                                                                                'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                     'schema': {'type': 'string',
+                                                                                'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'loginUser': {'parameters': [{'name': 'X-Request-ID',
+                               'in': 'header',
+                               'required': False,
+                               'description': '合法值透传；缺失或非法值生成新的标识。',
+                               'schema': {'type': 'string'}}],
+               'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                  'schema': {'type': 'string',
+                                                                             'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                             '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                  'schema': {'type': 'string',
+                                                                             'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                             '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                  'schema': {'type': 'string',
+                                                                             'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                             'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                      'schema': {'type': 'string',
+                                                                                 'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                             '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                  'schema': {'type': 'string',
+                                                                             'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'logoutUser': {'parameters': [{'name': 'X-Request-ID',
+                                'in': 'header',
+                                'required': False,
+                                'description': '合法值透传；缺失或非法值生成新的标识。',
+                                'schema': {'type': 'string'}}],
+                'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                   'schema': {'type': 'string',
+                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                              '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                   'schema': {'type': 'string',
+                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                              '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                   'schema': {'type': 'string',
+                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                              'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                              '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                   'schema': {'type': 'string',
+                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'getCurrentUser': {'parameters': [{'name': 'X-Request-ID',
+                                    'in': 'header',
+                                    'required': False,
+                                    'description': '合法值透传；缺失或非法值生成新的标识。',
+                                    'schema': {'type': 'string'}}],
+                    'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                  '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                  '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                  'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                  '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                       'schema': {'type': 'string',
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}

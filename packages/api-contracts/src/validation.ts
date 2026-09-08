@@ -72,7 +72,7 @@ function matches(schema: Schema, value: JsonValue): boolean {
     if (typeof value !== "string") return false;
     if (schema.minLength !== undefined && [...value].length < schema.minLength) return false;
     if (schema.pattern) {
-      const match = new RegExp(schema.pattern).exec(value);
+      const match = new RegExp(schema.pattern, "u").exec(value);
       if (!match || (schema.pattern.startsWith("^") && schema.pattern.endsWith("$") && match[0] !== value)) return false;
     }
     return schema.format !== "date-time" || dateTime(value);

@@ -10,13 +10,15 @@ from migration_helpers import BACKEND_ROOT, HEAD, migrate, write_database_config
 from sqlalchemy import Column, Integer, MetaData, Table, inspect, text
 from sqlalchemy.engine import Connection
 
+from oncall_pilot.auth.models import UserRow
 from oncall_pilot.memory import SchemaRevision
 from oncall_pilot.memory.sqlite import Database, SQLiteRepository, open_database
 from oncall_pilot.memory.sqlite.base import Base
 
 
 def _assert_metadata_matches(connection: Connection) -> None:
-    assert inspect(connection).get_table_names() == ["alembic_version"]
+    assert UserRow.metadata is Base.metadata
+    assert inspect(connection).get_table_names() == ["alembic_version", "auth_sessions", "users"]
     context = MigrationContext.configure(connection)
     assert compare_metadata(context, Base.metadata) == []
     # 负向探针证明比较器真的能发现未迁移的表，不只比较两个空集合。
@@ -40,6 +42,17 @@ async def test_fresh_repeat_upgrade_and_metadata_consistency(tmp_path: Path) -> 
 
 async def test_downgrade_and_upgrade_again(tmp_path: Path) -> None:
     config_dir = write_database_config(tmp_path)
+    migrate(config_dir, "upgrade", "0001_persistence_foundation")
+    async with open_database(config_dir) as database:
+        async with database.engine.connect() as connection:
+            tables = await connection.run_sync(lambda conn: inspect(conn).get_table_names())
+            assert tables == ["alembic_version"]
+    migrate(config_dir, "upgrade", "head")
+    migrate(config_dir, "downgrade", "0001_persistence_foundation")
+    async with open_database(config_dir) as database:
+        async with database.engine.connect() as connection:
+            tables = await connection.run_sync(lambda conn: inspect(conn).get_table_names())
+            assert tables == ["alembic_version"]
     migrate(config_dir, "upgrade", "head")
     migrate(config_dir, "downgrade", "base")
     async with open_database(config_dir) as database:

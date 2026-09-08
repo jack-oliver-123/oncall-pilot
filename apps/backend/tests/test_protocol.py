@@ -292,6 +292,13 @@ def assert_openapi_matches(app: FastAPI) -> None:
         for method, operation in methods.items():
             observed = actual["paths"][path][method]
             assert observed["operationId"] == operation["operationId"]
+            assert observed.get("security", []) == operation.get("security", [])
+            if "requestBody" in operation:
+                assert normalize(
+                    observed["requestBody"], actual["components"]["schemas"]
+                ) == normalize(operation["requestBody"], DOCUMENT["components"]["schemas"])
+            else:
+                assert "requestBody" not in observed
             assert normalize(observed["parameters"], actual["components"]["schemas"]) == normalize(
                 operation["parameters"], DOCUMENT["components"]["schemas"]
             )

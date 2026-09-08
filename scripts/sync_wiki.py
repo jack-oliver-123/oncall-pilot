@@ -294,6 +294,10 @@ def _validate_archive_specs(
 ) -> list[str]:
     errors: list[str] = []
     operations: list[SpecOperation] = []
+    dates = {
+        page.directory_name: (page.archived_date or "", page.created_date)
+        for page in pages
+    }
     # 同日归档时先按 OpenSpec 创建日期折叠，避免名称反序覆盖后续 Change。
     for page in sorted(
         pages, key=lambda item: (item.archived_date or "", item.created_date, item.directory_name)
@@ -310,7 +314,22 @@ def _validate_archive_specs(
             )
 
     latest: dict[tuple[str, str], SpecOperation] = {}
+    groups: dict[tuple[str, str, str, str], set[str]] = {}
     for operation in operations:
+        group = (*dates[operation.archive_name], operation.capability, operation.requirement)
+        groups.setdefault(group, set()).add(operation.operation)
+    # 日期相同且只有新增/修改时，先应用原始 ADDED 再应用 MODIFIED。
+    # 删除后重建及重命名必须保留原顺序，不能把重新 ADDED 提前到 REMOVED 之前。
+    for operation in sorted(
+        operations,
+        key=lambda item: (
+            *dates[item.archive_name], item.capability, item.requirement,
+            item.operation != "ADDED" if groups[
+                (*dates[item.archive_name], item.capability, item.requirement)
+            ] == {"ADDED", "MODIFIED"} else False,
+            item.archive_name,
+        ),
+    ):
         latest[(operation.capability, operation.requirement)] = operation
 
     main_cache: dict[str, dict[str, str]] = {}

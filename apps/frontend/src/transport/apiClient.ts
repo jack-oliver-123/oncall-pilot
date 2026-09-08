@@ -88,7 +88,8 @@ export function createApiClient(options: TransportOptions) {
       );
       const envelope = await readEnvelope(response);
       if (response.status !== 200) throw new ProtocolError("响应状态未在 operation 中声明");
-      return parseContract(contract.responseSchema, envelope).data;
+      // operation 与 responseSchema 的对应关系来自同一生成表；运行时已逐项验证。
+      return parseContract(contract.responseSchema, envelope).data as OperationResponses[K]["data"];
     },
   };
 }

@@ -129,6 +129,39 @@ class WikiSyncTests(unittest.TestCase):
         sync_wiki(self.root, "all")
         self.assertEqual(previous, self.managed_files())
 
+    def test_same_created_day_modification_follows_original_addition(self) -> None:
+        requirement = "Authentication extends foundation"
+        self.create_change("2026-09-08-z-foundation", archived=True, delta_requirement=requirement)
+        auth = self.create_change("2026-09-08-a-auth", archived=True, delta_requirement=requirement)
+        delta = auth / "specs/wiki-sync/spec.md"
+        delta.write_text(delta.read_text(encoding="utf-8").replace("ADDED", "MODIFIED").replace("生成 WIKI", "生成认证 WIKI"), encoding="utf-8")
+        self.create_main_spec(requirement)
+        main = self.root / "openspec/specs/wiki-sync/spec.md"
+        original = main.read_text(encoding="utf-8")
+        main.write_text(original.replace("生成 WIKI", "生成认证 WIKI"), encoding="utf-8")
+        self.assertEqual(sync_wiki(self.root, "all").archive_count, 2)
+        before = self.managed_files()
+        sync_wiki(self.root, "all")
+        self.assertEqual(before, self.managed_files())
+        main.write_text(original, encoding="utf-8")
+        with self.assertRaisesRegex(WikiSyncError, "内容未同步"):
+            sync_wiki(self.root, "all")
+        self.assertEqual(before, self.managed_files())
+
+    def test_same_day_remove_then_reintroduce_keeps_original_order(self) -> None:
+        requirement = "Reintroduced requirement"
+        initial = self.create_change("2026-09-07-original", archived=True, delta_requirement=requirement)
+        removed = self.create_change("2026-09-08-a-remove", archived=True, delta_requirement=requirement)
+        self.create_change("2026-09-08-z-reintroduce", archived=True, delta_requirement=requirement)
+        (initial / ".openspec.yaml").write_text("schema: spec-driven\ncreated: 2026-08-25\n", encoding="utf-8")
+        (removed / "specs/wiki-sync/spec.md").write_text(
+            f"## REMOVED Requirements\n\n### Requirement: {requirement}\n**Reason**: 暂时移除\n**Migration**: 后续恢复\n",
+            encoding="utf-8",
+        )
+        self.create_main_spec(requirement)
+        self.assertEqual(sync_wiki(self.root, "all").archive_count, 3)
+        verify_wiki(self.root)
+
     def test_rejects_unsynchronized_delta_before_writing(self) -> None:
         archive_name = "2026-08-26-unsynced-change"
         self.create_change(
