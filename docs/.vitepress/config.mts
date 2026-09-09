@@ -8,6 +8,7 @@ const activeItems = [
 const archivedItems = [
   { text: "setup-local-infrastructure-and-milvus", link: "/changes/archive/2026-09-09-setup-local-infrastructure-and-milvus/" },
   { text: "configure-qwen-model-providers", link: "/changes/archive/2026-09-09-configure-qwen-model-providers/" },
+  { text: "build-chinese-vue-app-shell", link: "/changes/archive/2026-09-09-build-chinese-vue-app-shell/" },
   { text: "setup-sqlite-repository-foundation", link: "/changes/archive/2026-09-08-setup-sqlite-repository-foundation/" },
   { text: "establish-project-foundation", link: "/changes/archive/2026-09-08-establish-project-foundation/" },
   { text: "enforce-tenant-isolation", link: "/changes/archive/2026-09-08-enforce-tenant-isolation/" },
