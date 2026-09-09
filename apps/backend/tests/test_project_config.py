@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import traceback
 from pathlib import Path
 
 import pytest
@@ -84,9 +85,7 @@ def test_explicit_config_directory_is_independent_of_working_directory(
         ("user.project.json", "[]"),
     ],
 )
-def test_invalid_config_identifies_the_file(
-    tmp_path: Path, filename: str, content: str
-) -> None:
+def test_invalid_config_identifies_the_file(tmp_path: Path, filename: str, content: str) -> None:
     write_json(tmp_path / "project.json", {})
     (tmp_path / filename).write_text(content, encoding="utf-8")
 
@@ -97,3 +96,15 @@ def test_invalid_config_identifies_the_file(
 def test_missing_project_config_identifies_the_required_file(tmp_path: Path) -> None:
     with pytest.raises(ProjectConfigError, match="project.json"):
         load_project_config(tmp_path)
+
+
+@pytest.mark.parametrize("content", [b"\xff", b'{"apiKey": "private-key", broken}'])
+def test_config_errors_do_not_disclose_content_or_path(tmp_path: Path, content: bytes) -> None:
+    config_dir = tmp_path / "private-key"
+    config_dir.mkdir()
+    (config_dir / "project.json").write_bytes(content)
+    with pytest.raises(ProjectConfigError) as caught:
+        load_project_config(config_dir)
+    assert "project.json" in str(caught.value)
+    assert "private-key" not in "".join(traceback.format_exception(caught.value))
+    assert caught.value.__context__ is None

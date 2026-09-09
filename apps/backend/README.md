@@ -40,3 +40,7 @@ HTTP 响应使用 contracts 生成的 envelope；`/health` 返回成功 envelope
 密码通过 `pwdlib[argon2]` 哈希；未知账号执行 dummy Argon2 校验。每次登录生成独立的 32 字节随机 opaque token，仅客户端接收原值，SQLite 只存 64 位 SHA-256 hex digest。会话具有 createdAt、lastSeenAt、revokedAt，没有自动过期、expiresAt 或滑动 TTL；登出不删除用户或业务数据。
 
 应用 lifespan 显式拥有 Database 和密码服务并确定关闭；不会自动运行迁移。业务 endpoint 可依赖 `auth.api.current_identity` 获取服务端认证的 owner。CORS 只允许 `http://127.0.0.1:5173`，认证响应 `Cache-Control: no-store`，不使用 cookie。测试只访问临时 SQLite。
+
+## 模型配置
+
+Qwen/Bailian 的本地 JSON 配置、可注入边界、资源释放和手动 readiness smoke 见 [模型接入指南](llm.md)。模型 client 仅在显式 factory 中创建，普通应用启动不探测模型。

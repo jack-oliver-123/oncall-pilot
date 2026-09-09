@@ -117,7 +117,7 @@ class RepositoryFoundationTests(unittest.TestCase):
             with self.subTest(path=relative_path):
                 self.assertEqual(result.returncode, 0)
 
-    def test_tracked_config_templates_are_safe_and_foundation_only(self) -> None:
+    def test_tracked_config_templates_cover_final_sections_without_secrets(self) -> None:
         project = json.loads(
             (ROOT / "config/project.template.json").read_text(encoding="utf-8")
         )
@@ -132,10 +132,19 @@ class RepositoryFoundationTests(unittest.TestCase):
             project["database"]["url"],
             "sqlite+aiosqlite:///apps/backend/var/oncall-pilot.db",
         )
-        self.assertEqual(user, {})
-        self.assertTrue({"llm", "cls", "mcp", "minio"}.isdisjoint(project))
+        self.assertTrue({
+            "app", "backend", "frontend", "llm", "modelCapabilities", "vectorStore",
+            "mcp", "clsMcpServer", "prometheusAlerts", "clsLogUpload", "aiopsDemo",
+        }.issubset(project))
+        self.assertTrue({
+            "backendBaseUrl", "email", "displayName", "password", "pollIntervalSeconds",
+            "indexWaitSeconds",
+        }.issubset(project["aiopsDemo"]))
 
         def assert_credentials_are_empty(value: object) -> None:
+            if isinstance(value, list):
+                for child in value:
+                    assert_credentials_are_empty(child)
             if not isinstance(value, dict):
                 return
             for key, child in value.items():
@@ -144,6 +153,7 @@ class RepositoryFoundationTests(unittest.TestCase):
                 assert_credentials_are_empty(child)
 
         assert_credentials_are_empty(project)
+        assert_credentials_are_empty(user)
 
     def test_agents_is_the_single_project_guide(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")

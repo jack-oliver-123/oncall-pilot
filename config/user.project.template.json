@@ -1,1 +1,11 @@
-{}
+{
+  "llm": {
+    "chat": { "apiKey": "" },
+    "embedding": { "apiKey": "" },
+    "rerank": { "apiKey": "" }
+  },
+  "vectorStore": { "token": "" },
+  "clsMcpServer": { "secretId": "", "secretKey": "" },
+  "clsLogUpload": { "secretId": "", "secretKey": "" },
+  "aiopsDemo": { "email": "", "password": "" }
+}
