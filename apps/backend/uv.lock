@@ -1536,6 +1536,7 @@ dependencies = [
     { name = "openai" },
     { name = "pwdlib", extra = ["argon2"] },
     { name = "pydantic" },
+    { name = "pymilvus" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1547,7 +1548,6 @@ ai = [
     { name = "langchain-text-splitters" },
     { name = "langgraph" },
     { name = "mcp" },
-    { name = "pymilvus" },
     { name = "pypdf" },
     { name = "rank-bm25" },
 ]
@@ -1579,7 +1579,7 @@ requires-dist = [
     { name = "openai", specifier = ">=3.5,<4" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3,<1" },
     { name = "pydantic", specifier = ">=2.10,<3" },
-    { name = "pymilvus", marker = "extra == 'ai'", specifier = ">=3,<4" },
+    { name = "pymilvus", specifier = ">=3,<4" },
     { name = "pypdf", marker = "extra == 'ai'", specifier = ">=5,<7" },
     { name = "rank-bm25", marker = "extra == 'ai'", specifier = ">=0.2,<1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0,<3" },

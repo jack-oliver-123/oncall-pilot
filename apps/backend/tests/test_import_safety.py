@@ -23,6 +23,7 @@ import httpx
 import sqlalchemy
 import sqlalchemy.ext.asyncio
 import uvicorn
+import types
 
 def forbidden(*args, **kwargs):
     raise AssertionError("module import 触发了应用 I/O")
@@ -47,6 +48,13 @@ sqlalchemy.ext.asyncio.AsyncSession = forbidden
 alembic.command.upgrade = forbidden
 alembic.command.downgrade = forbidden
 uvicorn.run = forbidden
+
+# 即使未安装官方 SDK，应用导入也不能请求其初始化入口。
+import sys
+sdk = types.ModuleType("pymilvus")
+sdk.MilvusClient = forbidden
+sdk.connections = types.SimpleNamespace(connect=forbidden)
+sys.modules["pymilvus"] = sdk
 
 for probe in (
     lambda: builtins.open("unexpected.txt", "w"),
