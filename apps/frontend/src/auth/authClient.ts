@@ -5,6 +5,7 @@ import {
   type RegisterRequest,
 } from "@oncall-pilot/api-contracts";
 import { createApiClient, type TransportOptions } from "../transport/apiClient";
+import { createSseClient } from "../transport/sseClient";
 
 export function createAuthClient(options: Omit<TransportOptions, "getBearer">) {
   const publicApi = createApiClient(options);
@@ -37,6 +38,9 @@ export function createAuthClient(options: Omit<TransportOptions, "getBearer">) {
       return request("logoutUser", token);
     },
     request,
+    stream(path: string, token: string | undefined, init: RequestInit = {}) {
+      return createSseClient({ ...options, getBearer: () => token }).stream(path, init);
+    },
   };
 }
 

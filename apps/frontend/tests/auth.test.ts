@@ -166,7 +166,7 @@ describe("authClient 与认证状态", () => {
     expect(auth.state.status).toBe("error");
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe(token);
   });
-  it.each([false, true])("登出立即清理本地，服务端失败=%s 时保留失败语义", async (fails) => {
+  it.each([false, true])("登出撤销后清理本地，服务端失败=%s 时保留失败语义", async (fails) => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValueOnce(loginResponse());
     if (fails) fetch.mockRejectedValueOnce(new TypeError("offline"));
     else fetch.mockResolvedValueOnce(success(null));
@@ -175,11 +175,11 @@ describe("authClient 与认证状态", () => {
     const clear = vi.fn();
     auth.registerProtectedStore(clear);
     const operation = auth.logout();
-    expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBeNull();
     expect(auth.state.user).toBeNull();
-    expect(clear).toHaveBeenCalledOnce();
     if (fails) await expect(operation).rejects.toThrow("offline");
     else await operation;
+    expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBeNull();
+    expect(clear).toHaveBeenCalledOnce();
     const [url, init] = fetch.mock.calls[1]!;
     expect(String(url)).toBe("http://127.0.0.1:8000/auth/logout");
     expect(init?.method).toBe("POST");
@@ -311,6 +311,101 @@ describe("authClient 与认证状态", () => {
     finish(invalid());
     await rejected;
     expect(auth.state.user).toEqual(user);
+    expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe("b".repeat(43));
+  });
+});
+
+// SSE 使用既有共享事件和模拟网络流，验证认证接入而非业务实现。
+describe("认证 SSE 生命周期", () => {
+  it("当前 SSE 握手 401 清理认证及登记 store", async () => {
+    const auth = create(
+      vi.fn<typeof fetch>().mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(invalid()),
+    );
+    await auth.login(credentials);
+    const reset = vi.fn();
+    auth.registerProtectedStore(reset);
+    await expect(auth.stream("/future-stream").next()).rejects.toMatchObject({
+      name: "ApiClientError",
+    });
+    expect(auth.state.user).toBeNull();
+    expect(reset).toHaveBeenCalledOnce();
+  });
+  it("登出取消流并释放 reader，不派发迟到内容", async () => {
+    let streamSignal: AbortSignal | undefined;
+    const cancel = vi.fn();
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(loginResponse())
+      .mockImplementationOnce(async (_url, init) => {
+        streamSignal = init?.signal ?? undefined;
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              streamSignal?.addEventListener("abort", () => controller.close(), { once: true });
+            },
+            cancel,
+          }),
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      })
+      .mockResolvedValueOnce(success(null));
+    const auth = create(fetch);
+    await auth.login(credentials);
+    const stream = auth.stream("/future-stream");
+    const pending = stream.next();
+    const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(new Headers(fetch.mock.calls[1]![1]!.headers).get("Authorization")).toBe(
+      `Bearer ${token}`,
+    );
+    await auth.logout();
+    await rejected;
+    expect(streamSignal?.aborted).toBe(true);
+    expect((await stream.next()).done).toBe(true);
+  });
+  it("旧 SSE 握手 401 不清除新账号", async () => {
+    let finish!: (response: Response) => void;
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(loginResponse())
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(loginResponse("b".repeat(43)));
+    const auth = create(fetch);
+    await auth.login(credentials);
+    const pending = auth.stream("/future-stream").next();
+    const rejected = expect(pending).rejects.toMatchObject({ name: "ApiClientError" });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await auth.login(credentials);
+    finish(invalid());
+    await rejected;
+    expect(auth.state.status).toBe("authenticated");
+    expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe("b".repeat(43));
+  });
+  it("旧登出撤销完成不清理后来建立的新身份", async () => {
+    let finish!: (response: Response) => void;
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(loginResponse())
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(loginResponse("b".repeat(43)));
+    const auth = create(fetch);
+    await auth.login(credentials);
+    const pending = auth.logout();
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await auth.login(credentials);
+    finish(success(null));
+    await pending;
+    expect(auth.state.status).toBe("authenticated");
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBe("b".repeat(43));
   });
 });

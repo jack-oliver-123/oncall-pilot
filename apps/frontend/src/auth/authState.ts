@@ -29,6 +29,12 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
   let token = storage.getItem(AUTH_TOKEN_KEY) ?? undefined;
   let version = 0;
   const protectedStores = new Set<() => void>();
+  const streams = new Set<AbortController>();
+
+  function cancelStreams() {
+    for (const controller of streams) controller.abort();
+    streams.clear();
+  }
 
   function clearProtected() {
     const errors: unknown[] = [];
@@ -44,6 +50,7 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
 
   function clearIdentity() {
     version++;
+    cancelStreams();
     token = undefined;
     state.user = null;
     state.status = "anonymous";
@@ -56,6 +63,7 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
 
   async function initialize() {
     const current = ++version;
+    cancelStreams();
     const captured = token;
     state.user = null;
     clearProtected();
@@ -100,11 +108,48 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
 
   async function logout() {
     const captured = token;
-    // 清理失败也必须尝试撤销已捕获的服务端会话。
+    const current = ++version;
+    cancelStreams();
+    token = undefined;
+    state.user = null;
+    state.status = "loading";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      clearIdentity();
+      if (captured) await client.request("logoutUser", captured, { signal: controller.signal });
     } finally {
-      if (captured) await client.logout(captured);
+      clearTimeout(timeout);
+      if (current === version) clearIdentity();
+    }
+  }
+
+  async function* stream(path: string, init: RequestInit = {}) {
+    const captured = token;
+    const current = version;
+    if (!captured || state.status !== "authenticated")
+      throw new DOMException("请求所属身份已失效", "AbortError");
+    const controller = new AbortController();
+    const abort = () => controller.abort(init.signal?.reason);
+    init.signal?.addEventListener("abort", abort, { once: true });
+    if (init.signal?.aborted) abort();
+    streams.add(controller);
+    try {
+      for await (const event of client.stream(path, captured, {
+        ...init,
+        signal: controller.signal,
+      })) {
+        controller.signal.throwIfAborted();
+        if (current !== version || captured !== token)
+          throw new DOMException("请求所属身份已失效", "AbortError");
+        yield event;
+      }
+    } catch (error) {
+      if (isUnauthorized(error) && current === version && captured === token) clearIdentity();
+      throw error;
+    } finally {
+      init.signal?.removeEventListener("abort", abort);
+      controller.abort();
+      streams.delete(controller);
     }
   }
 
@@ -133,6 +178,7 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
     login,
     logout,
     request,
+    stream,
     registerProtectedStore(reset: () => void) {
       protectedStores.add(reset);
       return () => protectedStores.delete(reset);
