@@ -72,7 +72,37 @@ Repository 以 `None` 表示该 scope 中缺失，更新/删除返回可选资�
 
 `document_delete_filter` 只有在 owner、knowledge base、document 三个值全部有效时才返回删除条件；输出包含 `tenantId + knowledgeBaseId + documentId`，禁止无 scope delete 或省略某个维度。调用方先生成合法条件再连接。值通过 JSON 字符串转义，不能作为表达式拼接；ID 去重只影响授权集合的重复成员。
 
-表达式中的相等、`in` 和逻辑 `and` 依据 [Milvus 标量过滤规则](https://milvus.io/docs/boolean.md)（2026-09-08 查阅）。本 Change 只有纯函数、回调与本地合同证据，尚无真实 Milvus adapter 或 live 验收。
+表达式中的相等、`in` 和逻辑 `and` 依据 [Milvus 标量过滤规则](https://milvus.io/docs/boolean.md)（2026-09-08 查阅）。P05 的纯 scope 合同由 P07 的实际 adapter 复用；fake、SDK 合同与 live 验证分别报告。
+
+## Milvus adapter
+
+`oncall_pilot.vector_store` 不在 import/构造时读取配置或连接。下面函数由主机组合层显式调用，config_dir 必须注入：
+
+```python
+from pathlib import Path
+from oncall_pilot.memory.scope import CurrentUser
+from oncall_pilot.vector_store import MilvusVectorStore, VectorChunk
+
+
+def index_and_search(config_dir: Path, user: CurrentUser, chunk: VectorChunk):
+    # chunk 的 KB/document 必须先通过 owner-scoped Repository 校验。
+    store = MilvusVectorStore(config_dir)
+    store.initialize()
+    store.insert([chunk], owner_user_id=user.user_id)
+    return store.search(
+        chunk.vector,
+        owner_user_id=user.user_id,
+        allowed_knowledge_base_ids=[chunk.knowledge_base_id],
+    )
+```
+
+collection 固定 1024 维 FLOAT_VECTOR、HNSW/COSINE（M=16、efConstruction=200、search ef=64）。chunkId 为调用方生成的全局唯一字符串主键，不提供 upsert；重复业务索引应由上层决定删除旧文档后重建。documentId、knowledgeBaseId、tenantId、ownerUserId、source、createdAt 建立 INVERTED 索引；content/metadata 不参与粗召回条件。createdAt 需要 aware datetime，存成 UTC ISO 字符串；向量必须是 1024 个有限数值。写入前验证整批数据并复制 metadata，归属投影不能被覆盖。
+
+metadata 复用 `memory.values.serialize_json` 的标准 JSON 值约定，拒绝非字符串 key、tuple、自定义对象与非有限数值，不静默转换数据；任一记录无效时整批在连接前拒绝。
+
+`search` 的 owner_user_id 必填，allowed_knowledge_base_ids 来自 scoped Repository；limit 为 1–64，空授权 KB 不读配置、不连接。结果是官方 hit 结构（id、distance、entity），retrieval 层在其上执行 document/metadata 后过滤。`delete_document(owner_user_id=..., knowledge_base_id=..., document_id=...)` 返回删除数且始终带完整 scope；不能通过 chunkId 单独删除。
+
+`health()` 显式调用真实服务版本探测并返回 bool，不建表，不改变应用 `/health`。初始化有界超时，已有 schema/index 漂移失败关闭，缺失索引可补建。此同步 adapter 不公开 close，官方 SDK 负责客户端资源；未来异步调用方应卸载同步 I/O。服务配置与 smoke 操作见 [基础设施指南](../../infra/README.md)。
 
 ## 后续资源接入
 

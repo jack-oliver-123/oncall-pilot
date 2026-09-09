@@ -12,6 +12,7 @@ title: OpenSpec 变更
 
 ## 已归档
 
+- [setup-local-infrastructure-and-milvus](/changes/archive/2026-09-09-setup-local-infrastructure-and-milvus/)
 - [configure-qwen-model-providers](/changes/archive/2026-09-09-configure-qwen-model-providers/)
 - [setup-sqlite-repository-foundation](/changes/archive/2026-09-08-setup-sqlite-repository-foundation/)
 - [establish-project-foundation](/changes/archive/2026-09-08-establish-project-foundation/)
