@@ -81,7 +81,7 @@ assert.equal(violations('import type { SseEvent } from "@oncall-pilot/api-contra
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         for schema in [
-            {"type": "string", "maxLength": 1}, {"format": "custom"},
+            {"type": "string", "unknownConstraint": 1}, {"format": "custom"},
             {"$ref": "https://external.invalid/schema"},
             {"type": "string", "enum": ["a", "b"], "pattern": "^a$"},
             {"$ref": "#/components/schemas/RequestId", "pattern": "^must-match$"},

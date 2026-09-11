@@ -13,6 +13,10 @@ interface Schema {
   additionalProperties?: boolean;
   items?: Schema;
   minLength?: number;
+  maxLength?: number;
+  maxItems?: number;
+  minimum?: number;
+  maximum?: number;
   pattern?: string;
   format?: string;
 }
@@ -66,19 +70,25 @@ function matches(schema: Schema, value: JsonValue): boolean {
   }
   if (schema.type === "array") {
     const items = schema.items;
-    return Array.isArray(value) && items !== undefined && value.every((item) => matches(items, item));
+    return Array.isArray(value) && items !== undefined &&
+      (schema.maxItems === undefined || value.length <= schema.maxItems) &&
+      value.every((item) => matches(items, item));
   }
   if (schema.type === "string") {
     if (typeof value !== "string") return false;
     if (schema.minLength !== undefined && [...value].length < schema.minLength) return false;
+    if (schema.maxLength !== undefined && [...value].length > schema.maxLength) return false;
     if (schema.pattern) {
       const match = new RegExp(schema.pattern, "u").exec(value);
       if (!match || (schema.pattern.startsWith("^") && schema.pattern.endsWith("$") && match[0] !== value)) return false;
     }
     return schema.format !== "date-time" || dateTime(value);
   }
-  if (schema.type === "integer") return typeof value === "number" && Number.isInteger(value);
-  if (schema.type === "number") return typeof value === "number";
+  if (schema.type === "integer" || schema.type === "number") {
+    return typeof value === "number" && (schema.type !== "integer" || Number.isInteger(value)) &&
+      (schema.minimum === undefined || value >= schema.minimum) &&
+      (schema.maximum === undefined || value <= schema.maximum);
+  }
   if (schema.type === "boolean") return typeof value === "boolean";
   if (schema.type === "null") return value === null;
   return schema.type === undefined;

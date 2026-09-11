@@ -29,6 +29,13 @@ OpenAPI 的 `x-protected-operation` 是所有未来受保护 path 的模板；Ty
 
 实际路由合同门禁遍历 FastAPI 的 `iter_route_contexts`，覆盖 include router、隐藏 endpoint、重复 path 和带前缀路径，再对比展开后的响应引用；不能仅依赖 OpenAPI 页面里的安全图标作为认证证据。
 
+## 知识文档合同
+
+P10 增加知识库列表、文档列表/上传/详情/删除和 chunk-preview 六个操作。`KnowledgeDocument` 保存元数据与实际 `ChunkingConfig`，不返回正文。`documentUploadPolicy` / Python `DOCUMENT_UPLOAD_POLICY` 来自 OpenAPI 扩展常量；大小、excerpt 字符数、preview 段数及固定参数下界在两端 runtime 校验。overlap < maxCharacters 由后端跨字段校验。
+
+上传采用 multipart：`file` 必填，`overwrite` 缺省 false，`chunkingConfig` 是可选 JSON 对象字符串，例如 `{"strategy":"fixed-character","maxCharacters":1200,"overlap":200}`。缺省配置使用 1200/200，另外两种策略只接受 strategy。未知/重复字段拒绝；文件/配置校验返回 400，结构错误 422，重复 hash 返回 BUSINESS_CONFLICT 409，认证/归属复用 401/403。显式覆盖先清理旧文档向量再发布新 ID，失败返回安全 500，可重试同一 DELETE 或 overwrite。
+
+
 ## 验证命令
 
 从仓库根运行：

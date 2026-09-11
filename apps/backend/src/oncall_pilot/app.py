@@ -17,9 +17,12 @@ from oncall_pilot.auth.service import AuthService
 from oncall_pilot.background_jobs_api import install_background_jobs
 from oncall_pilot.background_runtime import BackgroundWorker, HandlerRegistry
 from oncall_pilot.generated_contracts import OPERATION_DOCS, ApiFailure, HealthResponse
+from oncall_pilot.knowledge import KnowledgeDocumentService, VectorDeletion, knowledge_transaction
+from oncall_pilot.knowledge_api import install_knowledge
 from oncall_pilot.memory.sqlite import open_database
 from oncall_pilot.project_config import load_project_config
 from oncall_pilot.protocol import install_protocol, success
+from oncall_pilot.vector_store import MilvusVectorStore
 
 
 async def _health(request: Request) -> HealthResponse:
@@ -32,6 +35,7 @@ def create_app(
     config_dir: Path | None = None,
     *,
     job_handlers: HandlerRegistry | None = None,
+    document_vectors: VectorDeletion | None = None,
 ) -> FastAPI:
     """加载本地配置并创建无外部连接的应用。"""
 
@@ -50,10 +54,17 @@ def create_app(
             worker = BackgroundWorker(database, job_handlers or HandlerRegistry())
             application.state.background_worker = worker
             application.state.background_database = database
+            application.state.knowledge_service = KnowledgeDocumentService(
+                lambda: knowledge_transaction(database),
+                document_vectors
+                if document_vectors is not None
+                else MilvusVectorStore(resolved_config_dir),
+            )
             try:
                 async with worker.lifespan():
                     yield
             finally:
+                del application.state.knowledge_service
                 del application.state.background_database
                 del application.state.background_worker
                 del application.state.auth_service
@@ -64,7 +75,7 @@ def create_app(
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:5173"],
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
         expose_headers=["X-Request-ID"],
     )
@@ -84,4 +95,5 @@ def create_app(
     )
     install_auth(app)
     install_background_jobs(app)
+    install_knowledge(app)
     return app

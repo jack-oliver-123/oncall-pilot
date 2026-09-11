@@ -104,6 +104,17 @@ metadata 复用 `memory.values.serialize_json` 的标准 JSON 值约定，拒绝
 
 `health()` 显式调用真实服务版本探测并返回 bool，不建表，不改变应用 `/health`。初始化有界超时，已有 schema/index 漂移失败关闭，缺失索引可补建。此同步 adapter 不公开 close，官方 SDK 负责客户端资源；未来异步调用方应卸载同步 I/O。服务配置与 smoke 操作见 [基础设施指南](../../infra/README.md)。
 
+## 知识文档（P10）
+
+`0004_knowledge_documents` 新增默认知识库与文档表。每个 user 的默认 KB 使用 UUID5 确定性派生，不能创建/删除额外 KB。Repository 的所有方法显式携带 keyword-only owner；文档读取与写入同时限定 owner/KB/document，复合外键阻止父子归属混用。首次访问使用幂等 INSERT，避免 SQLite 并发读锁升级。
+
+`KnowledgeDocumentService` 通过 `KnowledgeTransactions` 获取 Repository Protocol，HTTP 组合层不持有事务。`create_app(..., document_vectors=...)` 可注入 adapter，默认使用 `MilvusVectorStore(config_dir)`；构造不连接，删除在工作线程执行。软删除先提交 `deleted_at`，事务外按 tenant/KB/document 清理向量，最后短事务写入 `vectors_cleaned`。未清理记录继续占用 owner/KB/hash partial unique index；失败返回安全 500，可重试同一 DELETE 或显式 overwrite。清理已完成的 DELETE 幂等成功。overwrite 只有清理成功后才创建新 ID；并发发布只允许一个相同 hash 的记录成功，其余返回 409。没有后台补偿或索引任务。
+
+正文只保存 pypdf/UTF-8 提取后的文本，不把上传原文写入 MinIO。multipart 解析前累计请求流最多 10 MiB + 64 KiB（头部/字段预算），文件内容另按准确 10 MiB 校验；框架可能短暂使用系统临时文件，响应后关闭。`.md` 接受 text/markdown、text/plain，`.pdf` 接受 application/pdf；UTF-8 BOM 去除，加密/损坏/无文本 PDF、空白正文均拒绝，不提供 OCR。
+
+`DocumentChunkingService.chunks` 和 `preview` 共用 `chunk_document_text`，固定字符默认 1200/200，另支持标题层级和空行段落。chunk metadata 的 start/end 为原正文字符偏移（end 不包含），保留 strategy、headings、documentId、knowledgeBaseId、ownerUserId、tenantId；preview 最多 12 段、每段最多 400 个 Unicode 字符，不改变 index status。文档 DTO 不暴露正文。
+
+
 ## 后续资源接入
 
 以下资源全部继承上述边界：chat、knowledge、index jobs、vector、MCP、AIOps、evidence、reports、cases、feedback、audit、background jobs。

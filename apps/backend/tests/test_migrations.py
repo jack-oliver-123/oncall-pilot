@@ -10,7 +10,7 @@ from migration_helpers import BACKEND_ROOT, HEAD, migrate, write_database_config
 from sqlalchemy import Column, Integer, MetaData, Table, inspect, text
 from sqlalchemy.engine import Connection
 
-from oncall_pilot import background_models
+from oncall_pilot import background_models, knowledge_models
 from oncall_pilot.auth.models import UserRow
 from oncall_pilot.memory import SchemaRevision
 from oncall_pilot.memory.sqlite import Database, SQLiteRepository, open_database
@@ -19,12 +19,15 @@ from oncall_pilot.memory.sqlite.base import Base
 
 def _assert_metadata_matches(connection: Connection) -> None:
     assert background_models.background_jobs.metadata is Base.metadata
+    assert knowledge_models.documents.metadata is Base.metadata
     assert UserRow.metadata is Base.metadata
     assert inspect(connection).get_table_names() == [
         "alembic_version",
         "auth_sessions",
         "background_job_events",
         "background_jobs",
+        "knowledge_bases",
+        "knowledge_documents",
         "users",
     ]
     context = MigrationContext.configure(connection)
