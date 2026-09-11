@@ -6,6 +6,7 @@ const activeItems = [
 ];
 
 const archivedItems = [
+  { text: "manage-knowledge-documents-and-chunking", link: "/changes/archive/2026-09-11-manage-knowledge-documents-and-chunking/" },
   { text: "add-durable-background-job-runtime", link: "/changes/archive/2026-09-10-add-durable-background-job-runtime/" },
   { text: "setup-local-infrastructure-and-milvus", link: "/changes/archive/2026-09-09-setup-local-infrastructure-and-milvus/" },
   { text: "configure-qwen-model-providers", link: "/changes/archive/2026-09-09-configure-qwen-model-providers/" },

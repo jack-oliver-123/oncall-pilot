@@ -8,7 +8,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_importing_all_package_modules_has_no_application_io_side_effects() -> None:
-    script = r'''
+    script = r"""
 import builtins
 import importlib
 import pkgutil
@@ -55,6 +55,9 @@ sdk = types.ModuleType("pymilvus")
 sdk.MilvusClient = forbidden
 sdk.connections = types.SimpleNamespace(connect=forbidden)
 sys.modules["pymilvus"] = sdk
+pdf = types.ModuleType("pypdf")
+pdf.PdfReader = forbidden
+sys.modules["pypdf"] = pdf
 
 for probe in (
     lambda: builtins.open("unexpected.txt", "w"),
@@ -72,7 +75,7 @@ import oncall_pilot
 
 for module in pkgutil.walk_packages(oncall_pilot.__path__, oncall_pilot.__name__ + "."):
     importlib.import_module(module.name)
-'''
+"""
     database_files_before = set(BACKEND_ROOT.rglob("*.db"))
 
     result = subprocess.run(

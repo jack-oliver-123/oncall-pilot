@@ -15,6 +15,7 @@ KEYS = {
     "$ref", "const", "enum", "type", "properties", "required", "additionalProperties",
     "oneOf", "anyOf", "discriminator", "items", "minLength", "pattern", "format", "default",
     "description",
+    "maxLength", "maxItems", "minimum", "maximum",
 }
 
 
@@ -46,9 +47,10 @@ def validate_schema(schema: dict, names: set[str]) -> None:
             raise ValueError("oneOf 必须声明判别字段以保证跨语言一致")
     if not any(key in schema for key in ("$ref", "enum", "const", "oneOf", "anyOf")):
         constraints = {
-            "string": {"minLength", "pattern", "format"},
+            "string": {"minLength", "maxLength", "pattern", "format"},
             "object": {"properties", "required", "additionalProperties"},
-            "array": {"items"}, "integer": set(), "number": set(),
+            "array": {"items", "maxItems"}, "integer": {"minimum", "maximum"},
+            "number": {"minimum", "maximum"},
             "boolean": set(), "null": set(), None: set(),
         }
         kind = schema.get("type")
@@ -104,7 +106,12 @@ def type_for(schema: dict, language: str) -> str:
         ) + "\n}"
     if kind == "array":
         item = type_for(schema["items"], language)
-        return f"Array<{item}>" if language == "ts" else f"list[{item}]"
+        if language == "ts":
+            return f"Array<{item}>"
+        result = f"list[{item}]"
+        if "maxItems" in schema:
+            result = f"Annotated[{result}, Field(max_length={schema['maxItems']!r})]"
+        return result
     types = {"string": ("string", "str"), "integer": ("number", "int"),
              "number": ("number", "float"), "boolean": ("boolean", "bool"),
              "null": ("null", "None")}
@@ -115,7 +122,8 @@ def type_for(schema: dict, language: str) -> str:
         if schema.get("format") == "date-time":
             value = 'Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]'
         fields = []
-        for source, target in [("minLength", "min_length"), ("pattern", "pattern")]:
+        for source, target in [("minLength", "min_length"), ("maxLength", "max_length"),
+                               ("pattern", "pattern"), ("minimum", "ge"), ("maximum", "le")]:
             if source in schema:
                 fields.append(f"{target}={schema[source]!r}")
         if fields:
@@ -238,6 +246,10 @@ def render(doc: dict) -> dict[Path, str]:
         else:
             py += ["", f"{name}: TypeAlias = {type_for(schema, 'py')}", ""]
     catalog = {}
+    if "x-document-upload-policy" in doc:
+        policy = doc["x-document-upload-policy"]
+        ts += ["export const documentUploadPolicy = " + json.dumps(policy, indent=2) + " as const;"]
+        py += ["DOCUMENT_UPLOAD_POLICY: dict[str, Any] = " + pformat(policy, sort_dicts=False), ""]
     for branch in schemas["ApiError"]["oneOf"]:
         fields = schemas[branch["$ref"].rsplit("/", 1)[1]]["properties"]
         code = fields["code"]["const"]

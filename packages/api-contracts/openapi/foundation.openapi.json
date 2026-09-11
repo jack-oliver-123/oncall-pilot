@@ -1033,6 +1033,766 @@
           }
         ]
       }
+    },
+    "/knowledge-bases": {
+      "get": {
+        "operationId": "listKnowledgeBases",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "查询知识库",
+        "parameters": [
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询知识库",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeBaseListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents": {
+      "get": {
+        "operationId": "listKnowledgeDocuments",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "查询知识文档",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询知识文档",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocumentListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "uploadKnowledgeDocument",
+        "description": "仅接收 .md/.pdf，最大 10 MiB。chunkingConfig 为 JSON 对象字符串，缺省 fixed-character 1200/200，仅此策略接受 maxCharacters/overlap 且 overlap < maxCharacters。重复返回 BUSINESS_CONFLICT 409；overwrite=true 清理旧向量后发布新记录。未知/重复 multipart 字段及文件校验失败返回 400，结构错误返回 422。清理失败返回 500，可重试同一 DELETE 或 overwrite。",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "上传知识文档",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "上传知识文档",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "400": {
+            "description": "文件 policy 或切分配置不合法",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "相同 owner/KB 的 hash 已存在；显式 overwrite 清理旧向量后发布新文档。",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "contentMediaType": "application/octet-stream"
+                  },
+                  "overwrite": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "chunkingConfig": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}": {
+      "get": {
+        "operationId": "getKnowledgeDocument",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "查询知识文档",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查询知识文档",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteKnowledgeDocument",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "删除知识文档",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除知识文档",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDocumentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}/chunk-preview": {
+      "get": {
+        "operationId": "previewKnowledgeDocumentChunks",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "预览文档切分",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "预览文档切分",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChunkPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2430,6 +3190,265 @@
           "meta"
         ],
         "additionalProperties": false
+      },
+      "KnowledgeBase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ownerUserId",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "KnowledgeBaseListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeBase"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "ChunkPreview": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 400
+          },
+          "metadata": {}
+        },
+        "required": [
+          "index",
+          "excerpt",
+          "metadata"
+        ],
+        "additionalProperties": false
+      },
+      "ChunkPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChunkPreview"
+            },
+            "maxItems": 12
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "FixedCharacterConfig": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "fixed-character"
+          },
+          "maxCharacters": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1200
+          },
+          "overlap": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 200
+          }
+        },
+        "required": [
+          "strategy",
+          "maxCharacters",
+          "overlap"
+        ],
+        "additionalProperties": false
+      },
+      "MarkdownHeadingConfig": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "markdown-heading"
+          }
+        },
+        "required": [
+          "strategy"
+        ],
+        "additionalProperties": false
+      },
+      "ParagraphConfig": {
+        "type": "object",
+        "properties": {
+          "strategy": {
+            "const": "paragraph"
+          }
+        },
+        "required": [
+          "strategy"
+        ],
+        "additionalProperties": false
+      },
+      "ChunkingConfig": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FixedCharacterConfig"
+          },
+          {
+            "$ref": "#/components/schemas/MarkdownHeadingConfig"
+          },
+          {
+            "$ref": "#/components/schemas/ParagraphConfig"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "strategy",
+          "mapping": {
+            "fixed-character": "#/components/schemas/FixedCharacterConfig",
+            "markdown-heading": "#/components/schemas/MarkdownHeadingConfig",
+            "paragraph": "#/components/schemas/ParagraphConfig"
+          }
+        },
+        "description": "仅 fixed-character 接受 maxCharacters/overlap，overlap 必须小于 maxCharacters。上传缺省配置为 1200/200。"
+      },
+      "KnowledgeDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          },
+          "knowledgeBaseId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10485760
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "indexStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "indexed",
+              "failed"
+            ]
+          },
+          "chunkingConfig": {
+            "$ref": "#/components/schemas/ChunkingConfig"
+          }
+        },
+        "required": [
+          "id",
+          "ownerUserId",
+          "knowledgeBaseId",
+          "filename",
+          "size",
+          "mimeType",
+          "sha256",
+          "uploadedAt",
+          "indexStatus",
+          "chunkingConfig"
+        ],
+        "additionalProperties": false
+      },
+      "KnowledgeDocumentListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDocument"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "KnowledgeDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/KnowledgeDocument"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -2502,5 +3521,21 @@
     "getHealth",
     "registerUser",
     "loginUser"
-  ]
+  ],
+  "x-document-upload-policy": {
+    "maxBytes": 10485760,
+    "extensions": [
+      ".md",
+      ".pdf"
+    ],
+    "markdownMimeTypes": [
+      "text/markdown",
+      "text/plain"
+    ],
+    "pdfMimeType": "application/pdf",
+    "defaultMaxCharacters": 1200,
+    "defaultOverlap": 200,
+    "maxPreviewChunks": 12,
+    "maxExcerptCharacters": 400
+  }
 }

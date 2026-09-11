@@ -8,7 +8,7 @@ from pathlib import Path
 from alembic import context
 from sqlalchemy.engine import URL, Connection
 
-from oncall_pilot import background_models
+from oncall_pilot import background_models, knowledge_models
 from oncall_pilot.auth import models as auth_models
 from oncall_pilot.memory.sqlite.base import Base
 from oncall_pilot.memory.sqlite.database import create_engine, database_url
@@ -16,6 +16,7 @@ from oncall_pilot.project_config import ProjectConfigError, load_project_config
 
 assert auth_models.UserRow.metadata is Base.metadata
 assert background_models.background_jobs.metadata is Base.metadata
+assert knowledge_models.documents.metadata is Base.metadata
 target_metadata = Base.metadata
 
 

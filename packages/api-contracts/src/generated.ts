@@ -327,6 +327,87 @@ export type BackgroundJobListResponse = {
   "meta": ResponseMeta;
 };
 
+export type KnowledgeBase = {
+  "id": string;
+  "ownerUserId": string;
+  "createdAt": string;
+};
+
+export type KnowledgeBaseListResponse = {
+  "ok": true;
+  "data": Array<KnowledgeBase>;
+  "meta": ResponseMeta;
+};
+
+export type ChunkPreview = {
+  "index": number;
+  "excerpt": string;
+  "metadata": JsonValue;
+};
+
+export type ChunkPreviewResponse = {
+  "ok": true;
+  "data": Array<ChunkPreview>;
+  "meta": ResponseMeta;
+};
+
+export type FixedCharacterConfig = {
+  "strategy": "fixed-character";
+  "maxCharacters": number;
+  "overlap": number;
+};
+
+export type MarkdownHeadingConfig = {
+  "strategy": "markdown-heading";
+};
+
+export type ParagraphConfig = {
+  "strategy": "paragraph";
+};
+
+export type ChunkingConfig = FixedCharacterConfig | MarkdownHeadingConfig | ParagraphConfig;
+
+export type KnowledgeDocument = {
+  "id": string;
+  "ownerUserId": string;
+  "knowledgeBaseId": string;
+  "filename": string;
+  "size": number;
+  "mimeType": string;
+  "sha256": string;
+  "uploadedAt": string;
+  "indexStatus": "pending" | "indexed" | "failed";
+  "chunkingConfig": ChunkingConfig;
+};
+
+export type KnowledgeDocumentListResponse = {
+  "ok": true;
+  "data": Array<KnowledgeDocument>;
+  "meta": ResponseMeta;
+};
+
+export type KnowledgeDocumentResponse = {
+  "ok": true;
+  "data": KnowledgeDocument;
+  "meta": ResponseMeta;
+};
+
+export const documentUploadPolicy = {
+  "maxBytes": 10485760,
+  "extensions": [
+    ".md",
+    ".pdf"
+  ],
+  "markdownMimeTypes": [
+    "text/markdown",
+    "text/plain"
+  ],
+  "pdfMimeType": "application/pdf",
+  "defaultMaxCharacters": 1200,
+  "defaultOverlap": 200,
+  "maxPreviewChunks": 12,
+  "maxExcerptCharacters": 400
+} as const;
 export const errorCatalog = {
   "AUTH_UNAUTHENTICATED": {
     "code": "AUTH_UNAUTHENTICATED",
@@ -462,6 +543,36 @@ export const operations = {
     "path": "/background-jobs/{id}:retry",
     "method": "POST",
     "responseSchema": "BackgroundJobResponse"
+  },
+  "listKnowledgeBases": {
+    "path": "/knowledge-bases",
+    "method": "GET",
+    "responseSchema": "KnowledgeBaseListResponse"
+  },
+  "listKnowledgeDocuments": {
+    "path": "/knowledge-bases/{kb}/documents",
+    "method": "GET",
+    "responseSchema": "KnowledgeDocumentListResponse"
+  },
+  "uploadKnowledgeDocument": {
+    "path": "/knowledge-bases/{kb}/documents",
+    "method": "POST",
+    "responseSchema": "KnowledgeDocumentResponse"
+  },
+  "getKnowledgeDocument": {
+    "path": "/knowledge-bases/{kb}/documents/{document}",
+    "method": "GET",
+    "responseSchema": "KnowledgeDocumentResponse"
+  },
+  "deleteKnowledgeDocument": {
+    "path": "/knowledge-bases/{kb}/documents/{document}",
+    "method": "DELETE",
+    "responseSchema": "KnowledgeDocumentResponse"
+  },
+  "previewKnowledgeDocumentChunks": {
+    "path": "/knowledge-bases/{kb}/documents/{document}/chunk-preview",
+    "method": "GET",
+    "responseSchema": "ChunkPreviewResponse"
   }
 } as const;
 export interface OperationResponses {
@@ -474,6 +585,12 @@ export interface OperationResponses {
   getBackgroundJob: BackgroundJobResponse;
   cancelBackgroundJob: BackgroundJobResponse;
   retryBackgroundJob: BackgroundJobResponse;
+  listKnowledgeBases: KnowledgeBaseListResponse;
+  listKnowledgeDocuments: KnowledgeDocumentListResponse;
+  uploadKnowledgeDocument: KnowledgeDocumentResponse;
+  getKnowledgeDocument: KnowledgeDocumentResponse;
+  deleteKnowledgeDocument: KnowledgeDocumentResponse;
+  previewKnowledgeDocumentChunks: ChunkPreviewResponse;
 }
 export interface SchemaTypes {
   RequestId: RequestId;
@@ -523,4 +640,15 @@ export interface SchemaTypes {
   BackgroundJobEvent: BackgroundJobEvent;
   BackgroundJobResponse: BackgroundJobResponse;
   BackgroundJobListResponse: BackgroundJobListResponse;
+  KnowledgeBase: KnowledgeBase;
+  KnowledgeBaseListResponse: KnowledgeBaseListResponse;
+  ChunkPreview: ChunkPreview;
+  ChunkPreviewResponse: ChunkPreviewResponse;
+  FixedCharacterConfig: FixedCharacterConfig;
+  MarkdownHeadingConfig: MarkdownHeadingConfig;
+  ParagraphConfig: ParagraphConfig;
+  ChunkingConfig: ChunkingConfig;
+  KnowledgeDocument: KnowledgeDocument;
+  KnowledgeDocumentListResponse: KnowledgeDocumentListResponse;
+  KnowledgeDocumentResponse: KnowledgeDocumentResponse;
 }
