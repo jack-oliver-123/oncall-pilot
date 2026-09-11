@@ -365,6 +365,57 @@ class LogoutResponse(WireModel):
     data: None
     meta: ResponseMeta
 
+
+BackgroundJobStatus: TypeAlias = Literal['queued', 'running', 'succeeded', 'failed', 'cancelled']
+
+
+class BackgroundJob(WireModel):
+    """BackgroundJob 合同。"""
+    id: str
+    ownerUserId: str
+    kind: str
+    resourceType: str | None
+    resourceId: str | None
+    leaseOwner: str | None
+    retryOfJobId: str | None
+    errorMessage: str | None
+    status: BackgroundJobStatus
+    payload: JsonValue
+    attempt: int
+    maxAttempts: int
+    timeoutSeconds: float
+    availableAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+    createdAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+    updatedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+    leaseExpiresAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+    cancelRequestedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+    startedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+    completedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+
+
+class BackgroundJobEvent(WireModel):
+    """BackgroundJobEvent 合同。"""
+    id: str
+    jobId: str
+    sequence: int
+    eventType: str
+    payload: JsonValue
+    createdAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+
+
+class BackgroundJobResponse(WireModel):
+    """BackgroundJobResponse 合同。"""
+    ok: Literal[True]
+    data: BackgroundJob
+    meta: ResponseMeta
+
+
+class BackgroundJobListResponse(WireModel):
+    """BackgroundJobListResponse 合同。"""
+    ok: Literal[True]
+    data: list[BackgroundJob]
+    meta: ResponseMeta
+
 ErrorCode: TypeAlias = Literal['AUTH_UNAUTHENTICATED', 'AUTH_FORBIDDEN', 'BUSINESS_NOT_FOUND', 'BUSINESS_CONFLICT', 'VALIDATION_BAD_REQUEST', 'VALIDATION_METHOD_NOT_ALLOWED', 'VALIDATION_REQUEST_INVALID', 'SYSTEM_RATE_LIMITED', 'SYSTEM_INTERNAL_ERROR', 'SYSTEM_UNAVAILABLE', 'AUTH_INVALID_CREDENTIALS', 'BUSINESS_EMAIL_ALREADY_EXISTS']
 
 ERROR_CATALOG: dict[ErrorCode, dict[str, JsonValue]] = {'AUTH_UNAUTHENTICATED': {'code': 'AUTH_UNAUTHENTICATED',
@@ -526,7 +577,133 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                            'schema': {'type': 'string'}}}},
                                   '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                        'schema': {'type': 'string',
-                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
+                                                                                  'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'listBackgroundJobs': {'parameters': [{'name': 'X-Request-ID',
+                                        'in': 'header',
+                                        'required': False,
+                                        'description': '合法值透传；缺失或非法值生成新的标识。',
+                                        'schema': {'type': 'string'}}],
+                        'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                          'WWW-Authenticate': {'description': 'HTTP '
+                                                                                              'bearer '
+                                                                                              '认证挑战。',
+                                                                               'schema': {'type': 'string'}}}},
+                                      '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'getBackgroundJob': {'parameters': [{'name': 'id',
+                                      'in': 'path',
+                                      'required': True,
+                                      'schema': {'type': 'string'}},
+                                     {'name': 'X-Request-ID',
+                                      'in': 'header',
+                                      'required': False,
+                                      'description': '合法值透传；缺失或非法值生成新的标识。',
+                                      'schema': {'type': 'string'}}],
+                      'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                    '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                    '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                    'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                    '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                        'WWW-Authenticate': {'description': 'HTTP '
+                                                                                            'bearer '
+                                                                                            '认证挑战。',
+                                                                             'schema': {'type': 'string'}}}},
+                                    '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                         'schema': {'type': 'string',
+                                                                                    'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'cancelBackgroundJob': {'parameters': [{'name': 'id',
+                                         'in': 'path',
+                                         'required': True,
+                                         'schema': {'type': 'string'}},
+                                        {'name': 'X-Request-ID',
+                                         'in': 'header',
+                                         'required': False,
+                                         'description': '合法值透传；缺失或非法值生成新的标识。',
+                                         'schema': {'type': 'string'}}],
+                         'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                       '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                       '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                       'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                       '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                           'WWW-Authenticate': {'description': 'HTTP '
+                                                                                               'bearer '
+                                                                                               '认证挑战。',
+                                                                                'schema': {'type': 'string'}}}},
+                                       '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                       '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                            'schema': {'type': 'string',
+                                                                                       'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'retryBackgroundJob': {'parameters': [{'name': 'id',
+                                        'in': 'path',
+                                        'required': True,
+                                        'schema': {'type': 'string'}},
+                                       {'name': 'X-Request-ID',
+                                        'in': 'header',
+                                        'required': False,
+                                        'description': '合法值透传；缺失或非法值生成新的标识。',
+                                        'schema': {'type': 'string'}}],
+                        'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                          'WWW-Authenticate': {'description': 'HTTP '
+                                                                                              'bearer '
+                                                                                              '认证挑战。',
+                                                                               'schema': {'type': 'string'}}}},
+                                      '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                      '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                           'schema': {'type': 'string',
+                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
 
 PROTECTED_OPERATION: dict[str, Any] = {'security': [{'BearerAuth': []}],
  'responses': {'401': {'description': '缺少有效认证会话。',

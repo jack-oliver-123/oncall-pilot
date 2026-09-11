@@ -60,7 +60,7 @@ statement = scoped_select(
 
 Repository 以 `None` 表示该 scope 中缺失，更新/删除返回可选资源 ID。使用布尔值或受影响行数的领域调用方必须将 false/零行显式转换为缺失，不能直接传给 `require_owned_resource`。HTTP 层用该 helper 统一将 `None` 转换成 `AUTH_FORBIDDEN` 403。父资源不存在、他人资源、子资源不存在或父子不匹配均不返回资源名、owner、查询细节，也不再做全局存在性查询；合法空父集合正常返回空列表。未知公开 URL 的既有 404 不属于受保护资源查询。
 
-具名非受保护例外仅有：基础设施 `schema_revision`；认证引导的 `add_user`（注册）、`find_user_by_email`（验证密码）、`resolve_token_hash`（按会话摘要恢复身份）。它们不提供通用业务查询能力，不向客户端暴露记录/凭据。`get_user` 只查当前 owner；`add_session`、`get_session`、`touch_session`、`revoke_session` 均显式带 owner。登出仅 revoke 当前 session，不删除 users 或业务资源，其他会话及其他用户资源保留。
+具名非受保护例外包括：基础设施 `schema_revision`；认证引导的 `add_user`（注册）、`find_user_by_email`（验证密码）、`resolve_token_hash`（按会话摘要恢复身份）。它们不提供通用业务查询能力，不向客户端暴露记录/凭据。`get_user` 只查当前 owner；`add_session`、`get_session`、`touch_session`、`revoke_session` 均显式带 owner。登出仅 revoke 当前 session，不删除 users 或业务资源，其他会话及其他用户资源保留。
 
 ## 向量边界
 
@@ -124,3 +124,18 @@ HTTP path 先扩展 canonical OpenAPI，再使用 `protected_router()` 和 `curr
 `tests/migration_helpers.py` 提供临时 JSON 配置与显式 Alembic 命令 helper；`migrated_config` / `database` fixture 使用每个测试独立的 `tmp_path`。禁止引用开发者真实配置或 `var/memory.sqlite3`。测试 fixture 会关闭资源，临时文件由 pytest 管理。
 
 迁移测试在空数据库升级至当前 head 后比较 `Base.metadata`，另用未迁移表探针确认比较器能发现漂移。事务/字段测试的探针表只在测试内创建，不进入生产 metadata。`0001_persistence_foundation` 无领域表；`0002_user_authentication` 增加 `users` 和 `auth_sessions`，测试覆盖重复升级、降级再升级、唯一约束、外键及 token hash 格式。
+
+
+## 持久后台任务运行时（P09）
+
+`background_jobs.py` 的查询仍以 `None` 表示缺失，HTTP 通过 `require_owned_resource` 映射 403；任务状态变更及事件读取需要父任务存在，内部以 `JobNotFound` 终止事务，HTTP 统一映射同一 403。这一状态机异常不包含资源数据，不能用于全局存在性探测。
+
+调度器 `BackgroundWorker._owners` 是新增的具名基础设施例外：仅从未完成任务发现 owner 标识，不返回 payload/资源内容、不暴露 HTTP endpoint。它只是调度目录；回收、领取、续租、事件、完成、取消和重试始终显式带同一持久 owner。`JobContext.scope` 由持久 owner 重建。新增具体业务 handler 仍须重新校验 resourceType/resourceId 对应的父归属。
+
+0003 的两张表为 `background_jobs`、`background_job_events`；任务与事件及 retryOfJobId 采用 owner/parent 复合外键。队列与租约有索引，状态、attempt、lease 与 sequence 有 CHECK/唯一约束。此模块时间保存为固定 UTC RFC3339 微秒文本（40 字符列），在 SQL 中按同一格式比较，避免驱动 naive datetime 自动适配；不更改其他模块 UTCDateTime 约定。
+
+启动前显式执行 Alembic upgrade head。应用可用 `create_app(config_dir, job_handlers=registry)` 注入按 kind 注册的 handler；默认没有业务 handler，未知类型保持 queued。worker 默认 concurrency=2、lease=30 秒、poll=0.2 秒；FastAPI lifespan 关闭时等待 handler 与 heartbeat 清理后关闭 Database。
+
+handler 接收 `JobContext`，从 `context.job.payload_value()` 获取独立数据，观察 `context.cancelled` 协作退出，并通过 `context.emit` 写持久事件。handler 必须使用可取消、有界的 async I/O，不可阻塞事件循环或吞掉取消后无限运行。timeout/正常关闭取消并等待 handler；进程异常退出则由 lease 到期回收。至少一次执行不保证外部副作用 exactly-once；具体 handler 必须以 job/resource ID 实现幂等。
+
+`replay_events(database, job_id, owner_user_id=..., after_sequence=0)` 重放有序事件快照，关闭迭代器不会取消任务。这里只提供后续 AIOps/SSE 的持久重放基础，没有新增业务 SSE endpoint 或 Last-Event-ID 协议。原始 payload 不记日志，错误仅用固定安全消息；handler 自行挑选可公开事件内容。

@@ -281,6 +281,52 @@ export type LogoutResponse = {
   "meta": ResponseMeta;
 };
 
+export type BackgroundJobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+
+export type BackgroundJob = {
+  "id": string;
+  "ownerUserId": string;
+  "kind": string;
+  "resourceType": string | null;
+  "resourceId": string | null;
+  "leaseOwner": string | null;
+  "retryOfJobId": string | null;
+  "errorMessage": string | null;
+  "status": BackgroundJobStatus;
+  "payload": JsonValue;
+  "attempt": number;
+  "maxAttempts": number;
+  "timeoutSeconds": number;
+  "availableAt": string;
+  "createdAt": string;
+  "updatedAt": string;
+  "leaseExpiresAt": string | null;
+  "cancelRequestedAt": string | null;
+  "startedAt": string | null;
+  "completedAt": string | null;
+};
+
+export type BackgroundJobEvent = {
+  "id": string;
+  "jobId": string;
+  "sequence": number;
+  "eventType": string;
+  "payload": JsonValue;
+  "createdAt": string;
+};
+
+export type BackgroundJobResponse = {
+  "ok": true;
+  "data": BackgroundJob;
+  "meta": ResponseMeta;
+};
+
+export type BackgroundJobListResponse = {
+  "ok": true;
+  "data": Array<BackgroundJob>;
+  "meta": ResponseMeta;
+};
+
 export const errorCatalog = {
   "AUTH_UNAUTHENTICATED": {
     "code": "AUTH_UNAUTHENTICATED",
@@ -396,6 +442,26 @@ export const operations = {
     "path": "/auth/me",
     "method": "GET",
     "responseSchema": "UserResponse"
+  },
+  "listBackgroundJobs": {
+    "path": "/background-jobs",
+    "method": "GET",
+    "responseSchema": "BackgroundJobListResponse"
+  },
+  "getBackgroundJob": {
+    "path": "/background-jobs/{id}",
+    "method": "GET",
+    "responseSchema": "BackgroundJobResponse"
+  },
+  "cancelBackgroundJob": {
+    "path": "/background-jobs/{id}:cancel",
+    "method": "POST",
+    "responseSchema": "BackgroundJobResponse"
+  },
+  "retryBackgroundJob": {
+    "path": "/background-jobs/{id}:retry",
+    "method": "POST",
+    "responseSchema": "BackgroundJobResponse"
   }
 } as const;
 export interface OperationResponses {
@@ -404,6 +470,10 @@ export interface OperationResponses {
   loginUser: LoginResponse;
   logoutUser: LogoutResponse;
   getCurrentUser: UserResponse;
+  listBackgroundJobs: BackgroundJobListResponse;
+  getBackgroundJob: BackgroundJobResponse;
+  cancelBackgroundJob: BackgroundJobResponse;
+  retryBackgroundJob: BackgroundJobResponse;
 }
 export interface SchemaTypes {
   RequestId: RequestId;
@@ -448,4 +518,9 @@ export interface SchemaTypes {
   UserResponse: UserResponse;
   LoginResponse: LoginResponse;
   LogoutResponse: LogoutResponse;
+  BackgroundJobStatus: BackgroundJobStatus;
+  BackgroundJob: BackgroundJob;
+  BackgroundJobEvent: BackgroundJobEvent;
+  BackgroundJobResponse: BackgroundJobResponse;
+  BackgroundJobListResponse: BackgroundJobListResponse;
 }
