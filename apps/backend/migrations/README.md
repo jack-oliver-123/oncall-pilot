@@ -1,6 +1,6 @@
 # 数据迁移
 
-Alembic 是 schema 唯一权威。基础 revision 为 0001_persistence_foundation，只建立版本链，当前数据库只有 Alembic 管理的版本表；不创建领域业务表。运行时不调用 create_all 或自动迁移。
+Alembic 是 schema 唯一权威。基础 revision 为 0001_persistence_foundation，只建立版本链。0002_user_authentication 增加认证表；当前 head 0003_background_jobs 增加后台任务与事件表。运行时不调用 create_all 或自动迁移。
 
 从 apps/backend 显式传入本地配置目录：
 
@@ -29,3 +29,6 @@ uv run alembic -c alembic.ini -x config-dir=../../config revision --autogenerate
 基础 revision 可用 downgrade base 撤销版本标记后重新 upgrade head；它没有业务 DDL。后续 revision 不继承无损回滚保证。
 
 2026-09-08 核对的官方依据：[SQLAlchemy SQLite 事务控制](https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#serializable-isolation-savepoints-transactional-ddl)、[Alembic async 迁移](https://alembic.sqlalchemy.org/en/latest/cookbook.html#using-asyncio-with-alembic)。运行时与迁移共用显式 BEGIN 策略；Alembic 通过 async connection 的 run_sync 执行迁移。
+
+
+P09 在首次运行新 worker 前要求显式 upgrade head。0003 的任务/事件 owner 复合外键与 sequence 唯一约束必须保留；`check` 同时对比业务 metadata。降级到 0002 会删除任务与事件，应先停止 worker 并备份需保留的数据。验收覆盖临时数据库升级、重复升级、check、降级与再次升级，不操作本机开发或生产数据。

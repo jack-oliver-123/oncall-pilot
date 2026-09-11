@@ -42,3 +42,8 @@ npm run wiki:test
 ```
 
 contracts 不依赖 frontend 或 backend，frontend 通过 npm workspace 单向依赖本包。
+
+
+## 后台任务合同
+
+P09 增加 `GET /background-jobs`、`GET /background-jobs/{id}`、`POST /background-jobs/{id}:cancel`、`POST /background-jobs/{id}:retry`。均使用 bearer 和共享 401/403；状态冲突复用 `BUSINESS_CONFLICT` 409。取消 running 任务返回已持久化的 cancelRequestedAt，最终状态由 worker 完成；重试创建新任务并设置 retryOfJobId，原任务保留。`BackgroundJob`、`BackgroundJobEvent`、单条/列表 envelope 来自同一 OpenAPI。heartbeat 只体现在 leaseExpiresAt，不存在 heartbeatAt/result 字段。事件 schema 不代表已经实现 HTTP SSE 重连协议。

@@ -14,6 +14,8 @@ from oncall_pilot.auth.api import install_auth
 from oncall_pilot.auth.passwords import PasswordManager
 from oncall_pilot.auth.repository import auth_transaction
 from oncall_pilot.auth.service import AuthService
+from oncall_pilot.background_jobs_api import install_background_jobs
+from oncall_pilot.background_runtime import BackgroundWorker, HandlerRegistry
 from oncall_pilot.generated_contracts import OPERATION_DOCS, ApiFailure, HealthResponse
 from oncall_pilot.memory.sqlite import open_database
 from oncall_pilot.project_config import load_project_config
@@ -26,7 +28,11 @@ async def _health(request: Request) -> HealthResponse:
     )
 
 
-def create_app(config_dir: Path | None = None) -> FastAPI:
+def create_app(
+    config_dir: Path | None = None,
+    *,
+    job_handlers: HandlerRegistry | None = None,
+) -> FastAPI:
     """加载本地配置并创建无外部连接的应用。"""
 
     resolved_config_dir = (
@@ -41,9 +47,15 @@ def create_app(config_dir: Path | None = None) -> FastAPI:
             application.state.auth_service = AuthService(
                 lambda: auth_transaction(database), passwords
             )
+            worker = BackgroundWorker(database, job_handlers or HandlerRegistry())
+            application.state.background_worker = worker
+            application.state.background_database = database
             try:
-                yield
+                async with worker.lifespan():
+                    yield
             finally:
+                del application.state.background_database
+                del application.state.background_worker
                 del application.state.auth_service
 
     app = FastAPI(title="On-call Pilot", version="0.2.0", lifespan=lifespan)
@@ -71,4 +83,5 @@ def create_app(config_dir: Path | None = None) -> FastAPI:
         },
     )
     install_auth(app)
+    install_background_jobs(app)
     return app

@@ -12,6 +12,7 @@ title: OpenSpec 变更
 
 ## 已归档
 
+- [add-durable-background-job-runtime](/changes/archive/2026-09-10-add-durable-background-job-runtime/)
 - [setup-local-infrastructure-and-milvus](/changes/archive/2026-09-09-setup-local-infrastructure-and-milvus/)
 - [configure-qwen-model-providers](/changes/archive/2026-09-09-configure-qwen-model-providers/)
 - [build-chinese-vue-app-shell](/changes/archive/2026-09-09-build-chinese-vue-app-shell/)

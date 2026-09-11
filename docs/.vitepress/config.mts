@@ -6,6 +6,7 @@ const activeItems = [
 ];
 
 const archivedItems = [
+  { text: "add-durable-background-job-runtime", link: "/changes/archive/2026-09-10-add-durable-background-job-runtime/" },
   { text: "setup-local-infrastructure-and-milvus", link: "/changes/archive/2026-09-09-setup-local-infrastructure-and-milvus/" },
   { text: "configure-qwen-model-providers", link: "/changes/archive/2026-09-09-configure-qwen-model-providers/" },
   { text: "build-chinese-vue-app-shell", link: "/changes/archive/2026-09-09-build-chinese-vue-app-shell/" },
