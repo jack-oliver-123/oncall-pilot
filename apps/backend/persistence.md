@@ -150,3 +150,15 @@ HTTP path 先扩展 canonical OpenAPI，再使用 `protected_router()` 和 `curr
 handler 接收 `JobContext`，从 `context.job.payload_value()` 获取独立数据，观察 `context.cancelled` 协作退出，并通过 `context.emit` 写持久事件。handler 必须使用可取消、有界的 async I/O，不可阻塞事件循环或吞掉取消后无限运行。timeout/正常关闭取消并等待 handler；进程异常退出则由 lease 到期回收。至少一次执行不保证外部副作用 exactly-once；具体 handler 必须以 job/resource ID 实现幂等。
 
 `replay_events(database, job_id, owner_user_id=..., after_sequence=0)` 重放有序事件快照，关闭迭代器不会取消任务。这里只提供后续 AIOps/SSE 的持久重放基础，没有新增业务 SSE endpoint 或 Last-Event-ID 协议。原始 payload 不记日志，错误仅用固定安全消息；handler 自行挑选可公开事件内容。
+
+## 持久文档索引（P11）
+
+`0005_document_index_tasks` 保存 owner/KB/document、五态、failureReason、retryOfTaskId 与时间戳；没有 jobId 列。`background_jobs` 使用 `resourceType=document_index_task` 和 `resourceId=taskId` 关联。创建领域记录和入队共用短事务；同一文档 pending/running 由 partial unique index 互斥。文档旧 indexed 升级为 succeeded，降级保留正文和认证数据。
+
+上传只创建文档，客户端必须显式 POST `/knowledge-bases/{kb}/documents/{document}/index-tasks`。GET `/{task}` 查询，POST `/{task}:retry` 创建新 attempt（接受 failed/cancelled/succeeded），POST `/{task}:cancel` 协作取消；通用 background retry 对索引关联任务返回 409，避免绕过领域来源记录。同一文档有活动索引时删除/覆盖返回 409，先取消并等待终态再删除。
+
+默认 lifespan 注册 `DocumentIndexHandler`；`index_provider` 和 `index_vectors` 可显式注入测试 adapter。handler 重新读取 owner-scoped 文档，复用全量 splitter，将所有文本一次交给 Qwen provider（provider 内每批最多 10），校验全部向量，显式 initialize Milvus，精确删除旧 chunks，再单次 insert_chunks 全量写入。source 为 filename，createdAt 为 aware UTC，metadata 包含 index、start/end、headings、strategy、chunkingConfig 和归属字段。
+
+job 的创建、领取、完成、取消与恢复事件在同一 session 投影到领域记录和文档；queued 映射 pending，不依赖 GET 才修复。成功只在全部写入后由 worker 通过 lease 检查提交，取消优先于成功。错误只保存固定安全类别，不记录上游异常。网络 I/O 不在 SQLite 事务内；同步线程取消后必须等有界 I/O 结束。
+
+SQLite 与 Milvus 不具备跨系统原子事务；insert 请求结果未知或本地提交失败由下一次精确删除和重建恢复。取消发生于已发送 insert 时可能已有外部副作用，但状态不标成功。SQLite lease fencing 仅保护本地写回，不能保证异常失租期间远端 RPC 的 exactly-once。真实 smoke 缺凭据时必须报告未执行。

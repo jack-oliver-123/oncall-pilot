@@ -156,11 +156,12 @@ export function createAuthState({ client, storage }: AuthStateOptions) {
   async function request<K extends keyof OperationResponses>(
     operation: K,
     init: Omit<RequestInit, "method"> = {},
+    pathParameters: Record<string, string> = {},
   ): Promise<OperationResponses[K]["data"]> {
     const captured = token;
     const current = version;
     try {
-      const result = await client.request(operation, captured, init);
+      const result = await client.request(operation, captured, init, pathParameters);
       if (current !== version || captured !== token) {
         throw new DOMException("请求所属身份已失效", "AbortError");
       }

@@ -1664,6 +1664,24 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "任务状态冲突，使用 BUSINESS_CONFLICT",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1770,6 +1788,568 @@
           },
           "default": {
             "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}/index-tasks": {
+      "post": {
+        "operationId": "createDocumentIndexTask",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "创建索引任务或重建文档",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "后台任务操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentIndexTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "任务状态冲突，使用 BUSINESS_CONFLICT",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}": {
+      "get": {
+        "operationId": "getDocumentIndexTask",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "查询索引任务",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "后台任务操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentIndexTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}:retry": {
+      "post": {
+        "operationId": "retryDocumentIndexTask",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "重试或重建索引",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "后台任务操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentIndexTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "任务状态冲突，使用 BUSINESS_CONFLICT",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}:cancel": {
+      "post": {
+        "operationId": "cancelDocumentIndexTask",
+        "tags": [
+          "knowledge"
+        ],
+        "summary": "取消索引任务",
+        "parameters": [
+          {
+            "name": "kb",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "document",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Request-ID",
+            "in": "header",
+            "required": false,
+            "description": "合法值透传；缺失或非法值生成新的标识。",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "后台任务操作成功",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentIndexTaskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求验证失败",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "内部错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "统一错误",
+            "headers": {
+              "X-Request-ID": {
+                "description": "请求关联标识",
+                "schema": {
+                  "$ref": "#/components/schemas/RequestId"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiFailure"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "任务状态冲突，使用 BUSINESS_CONFLICT",
             "headers": {
               "X-Request-ID": {
                 "description": "请求关联标识",
@@ -3382,12 +3962,7 @@
             "format": "date-time"
           },
           "indexStatus": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "indexed",
-              "failed"
-            ]
+            "$ref": "#/components/schemas/DocumentIndexStatus"
           },
           "chunkingConfig": {
             "$ref": "#/components/schemas/ChunkingConfig"
@@ -3438,6 +4013,132 @@
           },
           "data": {
             "$ref": "#/components/schemas/KnowledgeDocument"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "ok",
+          "data",
+          "meta"
+        ],
+        "additionalProperties": false
+      },
+      "DocumentIndexStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "DocumentIndexTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ownerUserId": {
+            "type": "string"
+          },
+          "knowledgeBaseId": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentIndexStatus"
+          },
+          "failureReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retryOfTaskId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelRequestedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "ownerUserId",
+          "knowledgeBaseId",
+          "documentId",
+          "status",
+          "failureReason",
+          "retryOfTaskId",
+          "createdAt",
+          "updatedAt",
+          "startedAt",
+          "completedAt",
+          "cancelRequestedAt"
+        ],
+        "additionalProperties": false
+      },
+      "DocumentIndexTaskResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/DocumentIndexTask"
           },
           "meta": {
             "$ref": "#/components/schemas/ResponseMeta"

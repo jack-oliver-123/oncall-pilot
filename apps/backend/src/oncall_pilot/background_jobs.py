@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from oncall_pilot.index_projection import project_index_job
 from oncall_pilot.memory.scope import OwnerScope
 from oncall_pilot.memory.values import deserialize_json, serialize_json
 from oncall_pilot.project_config import JsonValue
@@ -177,6 +178,7 @@ class BackgroundJobRepository:
         payload: str = "{}",
     ) -> None:
         # 同一 writer 事务内 MAX+1 与状态更新一起提交。
+        await project_index_job(self.session, job_id, owner_user_id=owner_user_id)
         await self.session.execute(
             text("""
             INSERT INTO background_job_events
@@ -235,6 +237,10 @@ class BackgroundJobRepository:
 
     @staticmethod
     def _require_lease(job: Job, lease_owner: str) -> None:
+        BackgroundJobRepository.require_lease(job, lease_owner)
+
+    @staticmethod
+    def require_lease(job: Job, lease_owner: str) -> None:
         if (
             job.status != "running"
             or job.lease_owner != lease_owner
@@ -348,6 +354,7 @@ class BackgroundJobRepository:
         owner_user_id: str,
         lease_owner: str,
         outcome: Outcome,
+        failure_reason: str | None = None,
     ) -> Job:
         OwnerScope(owner_user_id)
         await self._lock(owner_user_id)
@@ -363,7 +370,20 @@ class BackgroundJobRepository:
             status = "cancelled"
         elif outcome != "success":
             status = "queued" if job.attempt < job.max_attempts else "failed"
-        return await self._transition(job, status, errors.get(outcome))
+        safe_reasons = {
+            "文档读取失败。",
+            "文档切分失败。",
+            "文档向量生成失败。",
+            "向量存储初始化失败。",
+            "旧向量清理失败。",
+            "文档向量写入失败。",
+        }
+        error = (
+            failure_reason
+            if outcome == "failure" and failure_reason in safe_reasons
+            else errors.get(outcome)
+        )
+        return await self._transition(job, status, error)
 
     async def recover_expired(self, *, owner_user_id: str) -> int:
         OwnerScope(owner_user_id)
@@ -415,6 +435,8 @@ class BackgroundJobRepository:
         OwnerScope(owner_user_id)
         await self._lock(owner_user_id)
         job = await self._require_job(job_id, owner_user_id=owner_user_id)
+        if job.resource_type == "document_index_task":
+            raise InvalidJobState()
         if job.status not in ("failed", "cancelled"):
             raise InvalidJobState()
         new_job = await self.create(

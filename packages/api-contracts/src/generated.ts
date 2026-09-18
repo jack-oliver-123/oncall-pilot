@@ -376,7 +376,7 @@ export type KnowledgeDocument = {
   "mimeType": string;
   "sha256": string;
   "uploadedAt": string;
-  "indexStatus": "pending" | "indexed" | "failed";
+  "indexStatus": DocumentIndexStatus;
   "chunkingConfig": ChunkingConfig;
 };
 
@@ -389,6 +389,29 @@ export type KnowledgeDocumentListResponse = {
 export type KnowledgeDocumentResponse = {
   "ok": true;
   "data": KnowledgeDocument;
+  "meta": ResponseMeta;
+};
+
+export type DocumentIndexStatus = "pending" | "running" | "succeeded" | "failed" | "cancelled";
+
+export type DocumentIndexTask = {
+  "id": string;
+  "ownerUserId": string;
+  "knowledgeBaseId": string;
+  "documentId": string;
+  "status": DocumentIndexStatus;
+  "failureReason": string | null;
+  "retryOfTaskId": string | null;
+  "createdAt": string;
+  "updatedAt": string;
+  "startedAt": string | null;
+  "completedAt": string | null;
+  "cancelRequestedAt": string | null;
+};
+
+export type DocumentIndexTaskResponse = {
+  "ok": true;
+  "data": DocumentIndexTask;
   "meta": ResponseMeta;
 };
 
@@ -573,6 +596,26 @@ export const operations = {
     "path": "/knowledge-bases/{kb}/documents/{document}/chunk-preview",
     "method": "GET",
     "responseSchema": "ChunkPreviewResponse"
+  },
+  "createDocumentIndexTask": {
+    "path": "/knowledge-bases/{kb}/documents/{document}/index-tasks",
+    "method": "POST",
+    "responseSchema": "DocumentIndexTaskResponse"
+  },
+  "getDocumentIndexTask": {
+    "path": "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}",
+    "method": "GET",
+    "responseSchema": "DocumentIndexTaskResponse"
+  },
+  "retryDocumentIndexTask": {
+    "path": "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}:retry",
+    "method": "POST",
+    "responseSchema": "DocumentIndexTaskResponse"
+  },
+  "cancelDocumentIndexTask": {
+    "path": "/knowledge-bases/{kb}/documents/{document}/index-tasks/{task}:cancel",
+    "method": "POST",
+    "responseSchema": "DocumentIndexTaskResponse"
   }
 } as const;
 export interface OperationResponses {
@@ -591,6 +634,10 @@ export interface OperationResponses {
   getKnowledgeDocument: KnowledgeDocumentResponse;
   deleteKnowledgeDocument: KnowledgeDocumentResponse;
   previewKnowledgeDocumentChunks: ChunkPreviewResponse;
+  createDocumentIndexTask: DocumentIndexTaskResponse;
+  getDocumentIndexTask: DocumentIndexTaskResponse;
+  retryDocumentIndexTask: DocumentIndexTaskResponse;
+  cancelDocumentIndexTask: DocumentIndexTaskResponse;
 }
 export interface SchemaTypes {
   RequestId: RequestId;
@@ -651,4 +698,7 @@ export interface SchemaTypes {
   KnowledgeDocument: KnowledgeDocument;
   KnowledgeDocumentListResponse: KnowledgeDocumentListResponse;
   KnowledgeDocumentResponse: KnowledgeDocumentResponse;
+  DocumentIndexStatus: DocumentIndexStatus;
+  DocumentIndexTask: DocumentIndexTask;
+  DocumentIndexTaskResponse: DocumentIndexTaskResponse;
 }

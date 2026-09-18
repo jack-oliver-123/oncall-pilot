@@ -131,6 +131,9 @@ class MilvusVectorStore:
             return False
 
     def insert(self, chunks: Sequence[VectorChunk], *, owner_user_id: str) -> None:
+        self.insert_chunks(chunks, owner_user_id=owner_user_id)
+
+    def insert_chunks(self, chunks: Sequence[VectorChunk], *, owner_user_id: str) -> None:
         OwnerScope(owner_user_id)
         rows = [chunk.row(owner_user_id=owner_user_id) for chunk in chunks]
         if not rows:

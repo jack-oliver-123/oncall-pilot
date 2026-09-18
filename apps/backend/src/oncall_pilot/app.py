@@ -16,7 +16,15 @@ from oncall_pilot.auth.repository import auth_transaction
 from oncall_pilot.auth.service import AuthService
 from oncall_pilot.background_jobs_api import install_background_jobs
 from oncall_pilot.background_runtime import BackgroundWorker, HandlerRegistry
+from oncall_pilot.document_indexing import (
+    DocumentIndexHandler,
+    IndexVectors,
+    ProviderFactory,
+    qwen_factory,
+)
 from oncall_pilot.generated_contracts import OPERATION_DOCS, ApiFailure, HealthResponse
+from oncall_pilot.index_api import install_index_tasks
+from oncall_pilot.index_tasks import INDEX_KIND
 from oncall_pilot.knowledge import KnowledgeDocumentService, VectorDeletion, knowledge_transaction
 from oncall_pilot.knowledge_api import install_knowledge
 from oncall_pilot.memory.sqlite import open_database
@@ -36,6 +44,8 @@ def create_app(
     *,
     job_handlers: HandlerRegistry | None = None,
     document_vectors: VectorDeletion | None = None,
+    index_vectors: IndexVectors | None = None,
+    index_provider: ProviderFactory | None = None,
 ) -> FastAPI:
     """加载本地配置并创建无外部连接的应用。"""
 
@@ -51,7 +61,16 @@ def create_app(
             application.state.auth_service = AuthService(
                 lambda: auth_transaction(database), passwords
             )
-            worker = BackgroundWorker(database, job_handlers or HandlerRegistry())
+            registry = job_handlers or HandlerRegistry()
+            if INDEX_KIND not in registry.kinds():
+                registry.register(
+                    INDEX_KIND,
+                    DocumentIndexHandler(
+                        index_provider or qwen_factory(resolved_config_dir),
+                        index_vectors or MilvusVectorStore(resolved_config_dir),
+                    ),
+                )
+            worker = BackgroundWorker(database, registry)
             application.state.background_worker = worker
             application.state.background_database = database
             application.state.knowledge_service = KnowledgeDocumentService(
@@ -96,4 +115,5 @@ def create_app(
     install_auth(app)
     install_background_jobs(app)
     install_knowledge(app)
+    install_index_tasks(app)
     return app

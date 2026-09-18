@@ -32,6 +32,7 @@ class JobContext:
         self.job = job
         self.scope = OwnerScope(job.owner_user_id)
         self.cancelled = asyncio.Event()
+        self.failure_reason: str | None = None
 
     async def emit(self, event_type: str, payload: JsonValue) -> None:
         assert self.job.lease_owner is not None
@@ -158,10 +159,11 @@ class BackgroundWorker:
         finished = asyncio.Event()
         heartbeat = asyncio.create_task(self._heartbeat(context, finished))
         stopping = asyncio.create_task(self.stop_event.wait())
+        cancelling = asyncio.create_task(context.cancelled.wait())
         outcome: Outcome = "success"
         try:
             done, _ = await asyncio.wait(
-                (handler, heartbeat, stopping),
+                (handler, heartbeat, stopping, cancelling),
                 timeout=job.timeout_seconds,
                 return_when=asyncio.FIRST_COMPLETED,
             )
@@ -169,6 +171,8 @@ class BackgroundWorker:
                 outcome = "shutdown"
             elif not done:
                 outcome = "timeout"
+            elif cancelling in done:
+                outcome = "success"
             elif heartbeat in done:
                 await heartbeat  # 失租或数据库故障，先取消 handler，再由租约恢复。
                 raise LeaseLost()
@@ -188,8 +192,9 @@ class BackgroundWorker:
             handler.cancel()
             finished.set()
             stopping.cancel()
+            cancelling.cancel()
             # 不取消 SQLite I/O 中的 heartbeat，等其事务与连接正常关闭。
-            await asyncio.gather(handler, heartbeat, stopping, return_exceptions=True)
+            await asyncio.gather(handler, heartbeat, stopping, cancelling, return_exceptions=True)
         assert job.lease_owner is not None
         try:
             async with self.database.transaction() as session:
@@ -198,6 +203,7 @@ class BackgroundWorker:
                     owner_user_id=job.owner_user_id,
                     lease_owner=job.lease_owner,
                     outcome=outcome,
+                    failure_reason=context.failure_reason,
                 )
         except LeaseLost:
             pass

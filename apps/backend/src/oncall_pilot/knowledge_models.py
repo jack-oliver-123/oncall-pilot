@@ -35,8 +35,12 @@ documents = sa.Table(
         ["knowledge_bases.owner_user_id", "knowledge_bases.id"],
     ),
     sa.UniqueConstraint("owner_user_id", "id", name="uq_knowledge_documents_owner_user_id"),
+    sa.UniqueConstraint("owner_user_id", "knowledge_base_id", "id", name="uq_document_parent"),
     sa.CheckConstraint("size > 0 AND size <= 10485760", name="document_size"),
-    sa.CheckConstraint("index_status IN ('pending','indexed','failed')", name="index_status"),
+    sa.CheckConstraint(
+        "index_status IN ('pending','running','succeeded','failed','cancelled')",
+        name="index_status",
+    ),
 )
 sa.Index("ix_knowledge_documents_scope", documents.c.owner_user_id, documents.c.knowledge_base_id)
 sa.Index(
