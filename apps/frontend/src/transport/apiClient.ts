@@ -78,11 +78,18 @@ export function createApiClient(options: TransportOptions) {
     async request<K extends keyof OperationResponses>(
       operation: K,
       init: Omit<RequestInit, "method"> = {},
+      pathParameters: Record<string, string> = {},
     ): Promise<OperationResponses[K]["data"]> {
       const contract = operations[operation];
+      const path = contract.path.replace(/\{([^}]+)\}/g, (_, name: string) => {
+        const value = pathParameters[name];
+        if (!value || value === "." || value === "..")
+          throw new ProtocolError("路径参数缺失或无效");
+        return encodeURIComponent(value);
+      });
       const response = await sendRequest(
         options,
-        contract.path,
+        path,
         { ...init, method: contract.method },
         "application/json",
       );

@@ -475,7 +475,7 @@ class KnowledgeDocument(WireModel):
     mimeType: str
     sha256: Annotated[str, Field(pattern='^[0-9a-f]{64}$')]
     uploadedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
-    indexStatus: Literal['pending', 'indexed', 'failed']
+    indexStatus: DocumentIndexStatus
     chunkingConfig: ChunkingConfig
 
 
@@ -490,6 +490,32 @@ class KnowledgeDocumentResponse(WireModel):
     """KnowledgeDocumentResponse 合同。"""
     ok: Literal[True]
     data: KnowledgeDocument
+    meta: ResponseMeta
+
+
+DocumentIndexStatus: TypeAlias = Literal['pending', 'running', 'succeeded', 'failed', 'cancelled']
+
+
+class DocumentIndexTask(WireModel):
+    """DocumentIndexTask 合同。"""
+    id: str
+    ownerUserId: str
+    knowledgeBaseId: str
+    documentId: str
+    status: DocumentIndexStatus
+    failureReason: str | None
+    retryOfTaskId: str | None
+    createdAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+    updatedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})]
+    startedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+    completedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+    cancelRequestedAt: Annotated[str, AfterValidator(valid_timestamp), WithJsonSchema({"type": "string", "format": "date-time"})] | None
+
+
+class DocumentIndexTaskResponse(WireModel):
+    """DocumentIndexTaskResponse 合同。"""
+    ok: Literal[True]
+    data: DocumentIndexTask
     meta: ResponseMeta
 
 DOCUMENT_UPLOAD_POLICY: dict[str, Any] = {'maxBytes': 10485760,
@@ -953,7 +979,10 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                                            'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
                                            'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                                     'schema': {'type': 'string',
-                                                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+                                                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
  'previewKnowledgeDocumentChunks': {'parameters': [{'name': 'kb',
                                                     'in': 'path',
                                                     'required': True,
@@ -988,7 +1017,168 @@ OPERATION_DOCS: dict[str, dict[str, Any]] = {'getHealth': {'parameters': [{'name
                                                                                                   'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
                                                   'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
                                                                                            'schema': {'type': 'string',
-                                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
+                                                                                                      'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'createDocumentIndexTask': {'parameters': [{'name': 'kb',
+                                             'in': 'path',
+                                             'required': True,
+                                             'schema': {'type': 'string'}},
+                                            {'name': 'document',
+                                             'in': 'path',
+                                             'required': True,
+                                             'schema': {'type': 'string'}},
+                                            {'name': 'X-Request-ID',
+                                             'in': 'header',
+                                             'required': False,
+                                             'description': '合法值透传；缺失或非法值生成新的标识。',
+                                             'schema': {'type': 'string'}}],
+                             'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                    'schema': {'type': 'string',
+                                                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                               'WWW-Authenticate': {'description': 'HTTP '
+                                                                                                   'bearer '
+                                                                                                   '认证挑战。',
+                                                                                    'schema': {'type': 'string'}}}},
+                                           '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'getDocumentIndexTask': {'parameters': [{'name': 'kb',
+                                          'in': 'path',
+                                          'required': True,
+                                          'schema': {'type': 'string'}},
+                                         {'name': 'document',
+                                          'in': 'path',
+                                          'required': True,
+                                          'schema': {'type': 'string'}},
+                                         {'name': 'task',
+                                          'in': 'path',
+                                          'required': True,
+                                          'schema': {'type': 'string'}},
+                                         {'name': 'X-Request-ID',
+                                          'in': 'header',
+                                          'required': False,
+                                          'description': '合法值透传；缺失或非法值生成新的标识。',
+                                          'schema': {'type': 'string'}}],
+                          'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                        '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                        '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                        'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                 'schema': {'type': 'string',
+                                                                                            'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                        '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                            'WWW-Authenticate': {'description': 'HTTP '
+                                                                                                'bearer '
+                                                                                                '认证挑战。',
+                                                                                 'schema': {'type': 'string'}}}},
+                                        '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                             'schema': {'type': 'string',
+                                                                                        'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'retryDocumentIndexTask': {'parameters': [{'name': 'kb',
+                                            'in': 'path',
+                                            'required': True,
+                                            'schema': {'type': 'string'}},
+                                           {'name': 'document',
+                                            'in': 'path',
+                                            'required': True,
+                                            'schema': {'type': 'string'}},
+                                           {'name': 'task',
+                                            'in': 'path',
+                                            'required': True,
+                                            'schema': {'type': 'string'}},
+                                           {'name': 'X-Request-ID',
+                                            'in': 'header',
+                                            'required': False,
+                                            'description': '合法值透传；缺失或非法值生成新的标识。',
+                                            'schema': {'type': 'string'}}],
+                            'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                          '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                          '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                          'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                   'schema': {'type': 'string',
+                                                                                              'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                          '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                              'WWW-Authenticate': {'description': 'HTTP '
+                                                                                                  'bearer '
+                                                                                                  '认证挑战。',
+                                                                                   'schema': {'type': 'string'}}}},
+                                          '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                          '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                               'schema': {'type': 'string',
+                                                                                          'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}},
+ 'cancelDocumentIndexTask': {'parameters': [{'name': 'kb',
+                                             'in': 'path',
+                                             'required': True,
+                                             'schema': {'type': 'string'}},
+                                            {'name': 'document',
+                                             'in': 'path',
+                                             'required': True,
+                                             'schema': {'type': 'string'}},
+                                            {'name': 'task',
+                                             'in': 'path',
+                                             'required': True,
+                                             'schema': {'type': 'string'}},
+                                            {'name': 'X-Request-ID',
+                                             'in': 'header',
+                                             'required': False,
+                                             'description': '合法值透传；缺失或非法值生成新的标识。',
+                                             'schema': {'type': 'string'}}],
+                             'responses': {'200': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '422': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '500': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           'default': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                    'schema': {'type': 'string',
+                                                                                               'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '401': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}},
+                                                               'WWW-Authenticate': {'description': 'HTTP '
+                                                                                                   'bearer '
+                                                                                                   '认证挑战。',
+                                                                                    'schema': {'type': 'string'}}}},
+                                           '403': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}},
+                                           '409': {'headers': {'X-Request-ID': {'description': '请求关联标识',
+                                                                                'schema': {'type': 'string',
+                                                                                           'pattern': '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'}}}}}}}
 
 PROTECTED_OPERATION: dict[str, Any] = {'security': [{'BearerAuth': []}],
  'responses': {'401': {'description': '缺少有效认证会话。',

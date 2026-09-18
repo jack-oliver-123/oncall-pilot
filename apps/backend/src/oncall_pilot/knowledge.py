@@ -274,6 +274,21 @@ class KnowledgeDocumentRepository:
         self, document_id: str, *, owner_user_id: str, knowledge_base_id: str
     ) -> Document | None:
         require_default_kb(owner_user_id=owner_user_id, knowledge_base_id=knowledge_base_id)
+        from sqlalchemy import text
+
+        await self._session.execute(
+            text("UPDATE knowledge_documents SET id=id WHERE owner_user_id=:o AND 0"),
+            {"o": owner_user_id},
+        )
+        active = await self._session.scalar(
+            text(
+                "SELECT 1 FROM document_index_tasks WHERE owner_user_id=:o "
+                "AND knowledge_base_id=:kb AND document_id=:d AND status IN ('pending','running')"
+            ),
+            {"o": owner_user_id, "kb": knowledge_base_id, "d": document_id},
+        )
+        if active:
+            raise DocumentConflict
         await self._session.execute(
             update(documents)
             .where(

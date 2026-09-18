@@ -13,9 +13,14 @@ export function createAuthClient(options: Omit<TransportOptions, "getBearer">) {
     operation: K,
     token: string | undefined,
     init: Omit<RequestInit, "method"> = {},
+    pathParameters: Record<string, string> = {},
   ) {
     // 捕获发起时 token，使迟到响应只影响它所属的认证状态。
-    return createApiClient({ ...options, getBearer: () => token }).request(operation, init);
+    return createApiClient({ ...options, getBearer: () => token }).request(
+      operation,
+      init,
+      pathParameters,
+    );
   }
 
   return {

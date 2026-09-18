@@ -166,6 +166,8 @@ async def delete_document(
         raise ApiException("SYSTEM_INTERNAL_ERROR") from None
     except DocumentNotFound:
         raise ApiException("AUTH_FORBIDDEN") from None
+    except DocumentConflict:
+        raise ApiException("BUSINESS_CONFLICT") from None
     return KnowledgeDocumentResponse.model_validate(
         success(row.public(), request.state.request_id).model_dump()
     )
@@ -235,6 +237,8 @@ def install_knowledge(app: FastAPI) -> None:
         }
         if method == "POST":
             responses[400] = {"model": ApiFailure}
+            responses[409] = {"model": ApiFailure}
+        if method == "DELETE":
             responses[409] = {"model": ApiFailure}
         docs = deepcopy(OPERATION_DOCS[operation])
         docs["parameters"] = [p for p in docs["parameters"] if p["in"] != "path"]

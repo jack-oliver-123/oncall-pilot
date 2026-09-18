@@ -7,7 +7,6 @@
 ## Requirements
 
 ### Requirement: 显式且惰性的生命周期
-
 向量存储 MUST 在导入与构造时不读取配置、不创建 client、不联网、不初始化 collection；SHALL 提供显式 connect、initialize、health、insert、search、delete-document，可注入 fake client，且不声明 public close API。配置 MUST 只来自本地 JSON 深合并后的 vectorStore。
 
 #### Scenario: 导入与配置隔离
@@ -23,7 +22,6 @@
 - **THEN** 返回真实探测成功或失败，不创建 collection，也不改变应用 /health 的存活语义
 
 ### Requirement: 固定向量与追溯字段
-
 collection MUST 使用 chunkId 字符串主键、documentId、knowledgeBaseId、ownerUserId、tenantId、content、source、createdAt、metadata 和 1024 维 float vector；向量索引 MUST 为 HNSW/COSINE，M=16、efConstruction=200，搜索 ef=64；可过滤标量 MUST 有索引。
 
 #### Scenario: 建表与索引
@@ -34,8 +32,18 @@ collection MUST 使用 chunkId 字符串主键、documentId、knowledgeBaseId、
 - **WHEN** 插入合法 chunk 或试图覆盖归属、使用错误维度或非有限向量
 - **THEN** 合法写入同时保留可信 ownerUserId/tenantId 标量和 metadata；非法输入在连接前拒绝
 
-### Requirement: 结构化租户搜索与文档删除
+### Requirement: 文档全量索引批写
+Milvus 向量记录 MUST 保留 chunkId、documentId、knowledgeBaseId、ownerUserId、tenantId、content、source、createdAt、chunking metadata 和 1024 维向量；写入 MUST 只接受已验证的完整记录。索引 handler MUST 显式 initialize collection，在删除旧文档向量时同时限定 tenant、knowledge base、document 和 owner scope，并通过一次 insert_chunks 写入本次文档的全部 records；不得通过 chunkId 单独删除或分批写入造成部分成功假象。
 
+#### Scenario: 完整记录写入
+- **WHEN** handler 写入一个或多个 chunk
+- **THEN** 每条记录包含全部归属、正文、来源、创建时间和切分 metadata，向量维度和有限数值校验失败时拒绝整批
+
+#### Scenario: 精确删除
+- **WHEN** handler 重建文档
+- **THEN** 只删除当前 owner/tenant/KB/document 的旧向量，不影响其他用户或文档
+
+### Requirement: 结构化租户搜索与文档删除
 搜索 MUST 只由经过验证的归属和 allowedKnowledgeBaseIds 生成 tenantId + knowledgeBaseId 条件；document/metadata 条件 MUST 由 retrieval tool 在 owner-scoped 粗召回后过滤。ownerUserId SHALL 用于追溯且不重复加入 Milvus filter。删除 MUST 同时限定 tenantId、knowledgeBaseId、documentId；禁止 raw expression 输入。
 
 #### Scenario: 空授权范围
