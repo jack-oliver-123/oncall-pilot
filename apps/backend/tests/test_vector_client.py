@@ -62,3 +62,13 @@ def test_official_sdk_schema_and_operation_contract(monkeypatch: pytest.MonkeyPa
     sdk.get_server_version.return_value = "test-server"
     assert client.health()
     sdk.get_server_version.assert_called_once_with(timeout=30)
+    sdk.query.return_value = [{"chunkId": "chunk", "tenantId": "alice"}]
+    rows = client.query("test", expression)
+    assert rows == [{"id": "chunk", "entity": {"chunkId": "chunk", "tenantId": "alice"}}]
+    sdk.query.assert_called_once_with(
+        "test",
+        filter=expression,
+        output_fields=list(OUTPUT_FIELDS),
+        consistency_level="Strong",
+        timeout=30,
+    )

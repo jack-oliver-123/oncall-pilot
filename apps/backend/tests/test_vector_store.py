@@ -273,3 +273,13 @@ def test_bad_config_does_not_create_client(tmp_path: Path, field: str, value: st
     with pytest.raises(ProjectConfigError) as exc:
         store.connect()
     assert not configs and "secret" not in str(exc.value)
+
+
+def test_list_chunks_uses_tenant_and_kb_filter(tmp_path: Path) -> None:
+    store, fake, _ = setup_store(tmp_path)
+    store.insert([chunk("a"), chunk("b", kb="other")], owner_user_id="alice")
+    store.insert([chunk("c")], owner_user_id="bob")
+
+    rows = store.list_chunks(owner_user_id="alice", allowed_knowledge_base_ids=["kb"])
+    assert [row["id"] for row in rows] == ["a"]
+    assert fake.expressions[-1] == 'tenantId == "alice" and knowledgeBaseId in ["kb"]'

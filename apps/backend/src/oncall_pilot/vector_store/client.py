@@ -19,6 +19,7 @@ class VectorClient(Protocol):
         self, collection: str, vector: list[float], expression: str, limit: int
     ) -> list[dict[str, Any]]: ...
     def delete(self, collection: str, expression: str) -> int: ...
+    def query(self, collection: str, expression: str) -> list[dict[str, Any]]: ...
     def health(self) -> bool: ...
 
 
@@ -94,3 +95,13 @@ class OfficialMilvusClient:
 
     def health(self) -> bool:
         return bool(self._client.get_server_version(timeout=REQUEST_TIMEOUT))
+
+    def query(self, collection: str, expression: str) -> list[dict[str, Any]]:
+        rows: Any = self._client.query(
+            collection,
+            filter=expression,
+            output_fields=list(OUTPUT_FIELDS),
+            consistency_level="Strong",
+            timeout=REQUEST_TIMEOUT,
+        )
+        return [{"id": row["chunkId"], "entity": row} for row in rows]

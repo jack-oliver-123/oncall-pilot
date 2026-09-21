@@ -4150,6 +4150,62 @@
           "meta"
         ],
         "additionalProperties": false
+      },
+      "RetrievalRank": {
+        "anyOf": [
+          {"type": "integer", "minimum": 1},
+          {"type": "null"}
+        ]
+      },
+      "RetrievalScore": {
+        "anyOf": [
+          {"type": "number"},
+          {"type": "null"}
+        ]
+      },
+      "KnowledgeRetrievalInput": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "minLength": 1},
+          "topK": {"type": "integer", "minimum": 1, "maximum": 5, "default": 5},
+          "knowledgeBaseIds": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}]},
+          "documentIds": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}]}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      },
+      "KnowledgeRetrievalResult": {
+        "type": "object",
+        "properties": {
+          "chunkId": {"type": "string"},
+          "documentId": {"type": "string"},
+          "knowledgeBaseId": {"type": "string"},
+          "source": {"type": "string"},
+          "excerpt": {"type": "string"},
+          "metadata": {"type": "object", "additionalProperties": true},
+          "vectorRank": {"$ref": "#/components/schemas/RetrievalRank"},
+          "vectorScore": {"$ref": "#/components/schemas/RetrievalScore"},
+          "bm25Rank": {"$ref": "#/components/schemas/RetrievalRank"},
+          "bm25Score": {"$ref": "#/components/schemas/RetrievalScore"},
+          "rrfScore": {"type": "number"},
+          "rerankRank": {"$ref": "#/components/schemas/RetrievalRank"},
+          "rerankScore": {"$ref": "#/components/schemas/RetrievalScore"},
+          "score": {"$ref": "#/components/schemas/RetrievalScore"}
+        },
+        "required": ["chunkId", "documentId", "knowledgeBaseId", "source", "excerpt", "metadata", "vectorRank", "vectorScore", "bm25Rank", "bm25Score", "rrfScore", "rerankRank", "rerankScore", "score"],
+        "additionalProperties": false
+      },
+      "KnowledgeRetrievalCitation": {
+        "$ref": "#/components/schemas/KnowledgeRetrievalResult"
+      },
+      "KnowledgeRetrievalOutput": {
+        "type": "object",
+        "properties": {
+          "results": {"type": "array", "items": {"$ref": "#/components/schemas/KnowledgeRetrievalResult"}, "maxItems": 5},
+          "citations": {"type": "array", "items": {"$ref": "#/components/schemas/KnowledgeRetrievalCitation"}, "maxItems": 5}
+        },
+        "required": ["results", "citations"],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
