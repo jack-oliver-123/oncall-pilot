@@ -236,12 +236,25 @@ def render(doc: dict) -> dict[Path, str]:
         if schema.get("properties"):
             py += ["", f"class {name}(WireModel):", f'    """{name} 合同。"""']
             for key, value in schema["properties"].items():
+                annotation = type_for(value, 'py')
+                if (
+                    key not in schema.get("required", [])
+                    and "default" not in value
+                    and not (value.get("type") == "object" and "properties" not in value)
+                    and not ("anyOf" in value and any(
+                        branch.get("type") == "null" for branch in value["anyOf"]
+                    ))
+                ):
+                    annotation = f"{annotation} | None"
                 suffix = ""
                 if key not in schema.get("required", []):
-                    if value.get("type") != "object" or "properties" in value:
-                        raise ValueError("当前可选字段只支持自由 JSON 对象")
-                    suffix = " = Field(default_factory=dict)"
-                py.append(f"    {key}: {type_for(value, 'py')}{suffix}")
+                    if value.get("type") == "object" and "properties" not in value:
+                        suffix = " = Field(default_factory=dict)"
+                    elif "default" in value:
+                        suffix = f" = {value['default']!r}"
+                    else:
+                        suffix = " = None"
+                py.append(f"    {key}: {annotation}{suffix}")
             py.append("")
         else:
             py += ["", f"{name}: TypeAlias = {type_for(schema, 'py')}", ""]

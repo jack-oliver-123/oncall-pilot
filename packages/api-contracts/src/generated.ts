@@ -415,6 +415,41 @@ export type DocumentIndexTaskResponse = {
   "meta": ResponseMeta;
 };
 
+export type RetrievalRank = number | null;
+
+export type RetrievalScore = number | null;
+
+export type KnowledgeRetrievalInput = {
+  "query": string;
+  "topK"?: number;
+  "knowledgeBaseIds"?: Array<string> | null;
+  "documentIds"?: Array<string> | null;
+};
+
+export type KnowledgeRetrievalResult = {
+  "chunkId": string;
+  "documentId": string;
+  "knowledgeBaseId": string;
+  "source": string;
+  "excerpt": string;
+  "metadata": Record<string, JsonValue>;
+  "vectorRank": RetrievalRank;
+  "vectorScore": RetrievalScore;
+  "bm25Rank": RetrievalRank;
+  "bm25Score": RetrievalScore;
+  "rrfScore": number;
+  "rerankRank": RetrievalRank;
+  "rerankScore": RetrievalScore;
+  "score": RetrievalScore;
+};
+
+export type KnowledgeRetrievalCitation = KnowledgeRetrievalResult;
+
+export type KnowledgeRetrievalOutput = {
+  "results": Array<KnowledgeRetrievalResult>;
+  "citations": Array<KnowledgeRetrievalCitation>;
+};
+
 export const documentUploadPolicy = {
   "maxBytes": 10485760,
   "extensions": [
@@ -701,4 +736,10 @@ export interface SchemaTypes {
   DocumentIndexStatus: DocumentIndexStatus;
   DocumentIndexTask: DocumentIndexTask;
   DocumentIndexTaskResponse: DocumentIndexTaskResponse;
+  RetrievalRank: RetrievalRank;
+  RetrievalScore: RetrievalScore;
+  KnowledgeRetrievalInput: KnowledgeRetrievalInput;
+  KnowledgeRetrievalResult: KnowledgeRetrievalResult;
+  KnowledgeRetrievalCitation: KnowledgeRetrievalCitation;
+  KnowledgeRetrievalOutput: KnowledgeRetrievalOutput;
 }

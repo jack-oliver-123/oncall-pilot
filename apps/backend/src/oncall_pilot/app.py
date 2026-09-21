@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +28,8 @@ from oncall_pilot.index_api import install_index_tasks
 from oncall_pilot.index_tasks import INDEX_KIND
 from oncall_pilot.knowledge import KnowledgeDocumentService, VectorDeletion, knowledge_transaction
 from oncall_pilot.knowledge_api import install_knowledge
+from oncall_pilot.knowledge_retrieval_composition import knowledge_retrieval_tool_factory
+from oncall_pilot.memory.scope import CurrentUser
 from oncall_pilot.memory.sqlite import open_database
 from oncall_pilot.project_config import load_project_config
 from oncall_pilot.protocol import install_protocol, success
@@ -46,6 +49,7 @@ def create_app(
     document_vectors: VectorDeletion | None = None,
     index_vectors: IndexVectors | None = None,
     index_provider: ProviderFactory | None = None,
+    retrieval_tool_factory: Callable[[CurrentUser], Any] | None = None,
 ) -> FastAPI:
     """加载本地配置并创建无外部连接的应用。"""
 
@@ -53,6 +57,9 @@ def create_app(
         config_dir if config_dir is not None else Path.cwd() / "config"
     ).resolve()
     project_config = load_project_config(resolved_config_dir)
+    resolved_retrieval_factory = retrieval_tool_factory or knowledge_retrieval_tool_factory(
+        config_dir=resolved_config_dir
+    )
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncGenerator[None]:
@@ -79,10 +86,12 @@ def create_app(
                 if document_vectors is not None
                 else MilvusVectorStore(resolved_config_dir),
             )
+            application.state.knowledge_retrieval_tool_factory = resolved_retrieval_factory
             try:
                 async with worker.lifespan():
                     yield
             finally:
+                del application.state.knowledge_retrieval_tool_factory
                 del application.state.knowledge_service
                 del application.state.background_database
                 del application.state.background_worker

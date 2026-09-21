@@ -1531,6 +1531,7 @@ dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "langchain" },
     { name = "langchain-openai" },
     { name = "langsmith" },
     { name = "openai" },
@@ -1545,7 +1546,6 @@ dependencies = [
 
 [package.optional-dependencies]
 ai = [
-    { name = "langchain" },
     { name = "langchain-mcp-adapters" },
     { name = "langchain-text-splitters" },
     { name = "langgraph" },
@@ -1571,7 +1571,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.14,<2" },
     { name = "fastapi", specifier = ">=0.115,<1" },
     { name = "httpx", specifier = ">=0.28,<1" },
-    { name = "langchain", marker = "extra == 'ai'", specifier = ">=1,<2" },
+    { name = "langchain", specifier = ">=1,<2" },
     { name = "langchain-mcp-adapters", marker = "extra == 'ai'", specifier = ">=0.1,<1" },
     { name = "langchain-openai", specifier = ">=1,<2" },
     { name = "langchain-text-splitters", marker = "extra == 'ai'", specifier = ">=1,<2" },

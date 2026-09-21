@@ -177,3 +177,15 @@ class MilvusVectorStore:
         self.initialize()
         client, collection = self._connection()
         return client.delete(collection, expression)
+
+    def list_chunks(
+        self, *, owner_user_id: str, allowed_knowledge_base_ids: Sequence[str]
+    ) -> list[dict[str, Any]]:
+        expression = search_filter(
+            owner_user_id=owner_user_id, allowed_knowledge_base_ids=allowed_knowledge_base_ids
+        )
+        if expression is None:
+            return []
+        self.initialize()
+        client, collection = self._connection()
+        return client.query(collection, expression)

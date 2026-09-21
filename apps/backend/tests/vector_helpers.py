@@ -93,6 +93,14 @@ class FakeVectorClient:
         self.rows = [row for row in self.rows if not matches(row, expression)]
         return before - len(self.rows)
 
+    def query(self, collection: str, expression: str) -> list[dict[str, Any]]:
+        self.expressions.append(expression)
+        return [
+            {"id": row["chunkId"], "entity": copy.deepcopy(row)}
+            for row in self.rows
+            if matches(row, expression)
+        ]
+
     def health(self) -> bool:
         self.calls.append("health")
         if self.fail_health:

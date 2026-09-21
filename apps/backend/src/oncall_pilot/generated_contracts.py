@@ -518,6 +518,47 @@ class DocumentIndexTaskResponse(WireModel):
     data: DocumentIndexTask
     meta: ResponseMeta
 
+
+RetrievalRank: TypeAlias = Annotated[int, Field(ge=1)] | None
+
+
+RetrievalScore: TypeAlias = float | None
+
+
+class KnowledgeRetrievalInput(WireModel):
+    """KnowledgeRetrievalInput 合同。"""
+    query: Annotated[str, Field(min_length=1)]
+    topK: Annotated[int, Field(ge=1, le=5)] = 5
+    knowledgeBaseIds: list[str] | None = None
+    documentIds: list[str] | None = None
+
+
+class KnowledgeRetrievalResult(WireModel):
+    """KnowledgeRetrievalResult 合同。"""
+    chunkId: str
+    documentId: str
+    knowledgeBaseId: str
+    source: str
+    excerpt: str
+    metadata: dict[str, JsonValue]
+    vectorRank: RetrievalRank
+    vectorScore: RetrievalScore
+    bm25Rank: RetrievalRank
+    bm25Score: RetrievalScore
+    rrfScore: float
+    rerankRank: RetrievalRank
+    rerankScore: RetrievalScore
+    score: RetrievalScore
+
+
+KnowledgeRetrievalCitation: TypeAlias = KnowledgeRetrievalResult
+
+
+class KnowledgeRetrievalOutput(WireModel):
+    """KnowledgeRetrievalOutput 合同。"""
+    results: Annotated[list[KnowledgeRetrievalResult], Field(max_length=5)]
+    citations: Annotated[list[KnowledgeRetrievalCitation], Field(max_length=5)]
+
 DOCUMENT_UPLOAD_POLICY: dict[str, Any] = {'maxBytes': 10485760,
  'extensions': ['.md', '.pdf'],
  'markdownMimeTypes': ['text/markdown', 'text/plain'],
