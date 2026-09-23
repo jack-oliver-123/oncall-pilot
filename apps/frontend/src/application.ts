@@ -7,6 +7,7 @@ import { createAuthState } from "./auth/authState";
 import { applicationKey } from "./context";
 import { createWorkspaceRouter, safeRedirect } from "./router";
 import { createProtectedDataStore } from "./stores/protectedData";
+import { createKnowledgeStore } from "./stores/knowledge";
 import { useFeedbackStore } from "./stores/feedback";
 import { createApiClient, type TransportOptions } from "./transport/apiClient";
 
@@ -23,6 +24,7 @@ export function createApplication(
     createAuthState({ client: createAuthClient(options), storage: options.storage }),
   )(pinia);
   const protectedData = createProtectedDataStore(auth)(pinia);
+  const knowledge = createKnowledgeStore(auth)(pinia);
   const feedback = useFeedbackStore(pinia);
   const unregisterFeedback = auth.registerProtectedStore(feedback.clear);
   const router = createWorkspaceRouter(options.history ?? createWebHistory(), auth);
@@ -45,7 +47,17 @@ export function createApplication(
     disposePinia(pinia);
   }
   app.onUnmount(dispose);
-  const application = { app, pinia, auth, protectedData, feedback, router, publicApi, dispose };
+  const application = {
+    app,
+    pinia,
+    auth,
+    protectedData,
+    knowledge,
+    feedback,
+    router,
+    publicApi,
+    dispose,
+  };
   app.provide(applicationKey, application);
   return application;
 }

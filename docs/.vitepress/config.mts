@@ -7,6 +7,7 @@ const activeItems = [
 
 const archivedItems = [
   { text: "provide-reranked-hybrid-knowledge-retrieval", link: "/changes/archive/2026-09-21-provide-reranked-hybrid-knowledge-retrieval/" },
+  { text: "build-knowledge-base-workspace", link: "/changes/archive/2026-09-21-build-knowledge-base-workspace/" },
   { text: "run-durable-document-indexing", link: "/changes/archive/2026-09-15-run-durable-document-indexing/" },
   { text: "manage-knowledge-documents-and-chunking", link: "/changes/archive/2026-09-11-manage-knowledge-documents-and-chunking/" },
   { text: "add-durable-background-job-runtime", link: "/changes/archive/2026-09-10-add-durable-background-job-runtime/" },

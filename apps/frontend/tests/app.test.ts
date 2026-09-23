@@ -8,9 +8,11 @@ import WorkspaceLayout from "../src/layouts/WorkspaceLayout.vue";
 import { createApplication } from "../src/application";
 import { applicationKey } from "../src/context";
 import { AUTH_TOKEN_KEY } from "../src/auth/authState";
+
 vi.mock("virtual:public-config", () => ({
   default: { frontend: { title: "On-call Pilot", apiBaseUrl: "http://localhost:8000" } },
 }));
+
 const user = {
   id: "5b0eab8a-6c94-4b4a-bdb4-653a91271fe1",
   email: "person@example.com",
@@ -22,6 +24,7 @@ const success = (data: unknown) =>
   });
 let wrapper: VueWrapper | undefined;
 let application: ReturnType<typeof createApplication> | undefined;
+
 async function setup(path: string, fetch: typeof globalThis.fetch) {
   application = createApplication({
     baseUrl: "http://localhost:8000",
@@ -39,11 +42,13 @@ async function setup(path: string, fetch: typeof globalThis.fetch) {
   await flushPromises();
   return { ...application, wrapper };
 }
+
 afterEach(() => {
   wrapper?.unmount();
   application?.dispose();
   localStorage.clear();
 });
+
 describe("中文工作台界面", () => {
   it("登录表单标签、校验与真实合同提交，保留目标路由", async () => {
     const fetch = vi
@@ -65,6 +70,7 @@ describe("中文工作台界面", () => {
     });
     expect(app.wrapper.get("h1").text()).toBe("知识库");
   });
+
   it("注册检查两次密码，成功返回登录并保持未认证", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValueOnce(success(user));
     const app = await setup("/register?redirect=/mcp", fetch);
@@ -83,6 +89,7 @@ describe("中文工作台界面", () => {
     expect(app.auth.state.user).toBeNull();
     expect(localStorage.length).toBe(0);
   });
+
   it("请求中禁止重复提交，服务错误使用 alert 且不误报成功", async () => {
     let finish!: (response: Response) => void;
     const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(
@@ -116,12 +123,15 @@ describe("中文工作台界面", () => {
     expect(app.feedback.message).toBeNull();
     expect(app.wrapper.get<HTMLInputElement>("#password").element.value).toBe("");
   });
-  it("四路由占位与导航同步，仅 Chat 出现会话列，服务状态来自真实响应", async () => {
+
+  it("四路由导航同步，知识库显示真实工作区，其余路由保留占位", async () => {
     localStorage.setItem(AUTH_TOKEN_KEY, "a".repeat(43));
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(success(user))
       .mockResolvedValueOnce(success({ status: "ok" }))
+      .mockResolvedValueOnce(success([]))
+      .mockResolvedValueOnce(success([]))
       .mockRejectedValueOnce(new TypeError("offline"));
     const app = await setup("/chat", fetch);
     expect(app.wrapper.text()).toContain("服务可连接");
@@ -136,13 +146,18 @@ describe("中文工作台界面", () => {
       expect(app.wrapper.get("h1").text()).toBe(title);
       expect(app.wrapper.get('[aria-current="page"]').text()).toBe(title);
       expect(app.wrapper.find('[aria-label="会话区域"]').exists()).toBe(path === "chat");
-      expect(app.wrapper.get("main").text()).toContain("尚未开放");
-      expect(app.wrapper.get("main").findAll("button, input")).toHaveLength(0);
+      if (path === "knowledge") {
+        expect(app.wrapper.get("main").text()).toContain("上传文档");
+      } else {
+        expect(app.wrapper.get("main").text()).toContain("尚未开放");
+        expect(app.wrapper.get("main").findAll("button, input")).toHaveLength(0);
+      }
     }
     await app.wrapper.get('[aria-label="刷新服务状态"]').trigger("click");
     await flushPromises();
     expect(app.wrapper.text()).toContain("服务无法连接");
   });
+
   it("只有 Chat 可渲染会话区域插槽", async () => {
     localStorage.setItem(AUTH_TOKEN_KEY, "a".repeat(43));
     const app = await setup(
@@ -162,6 +177,7 @@ describe("中文工作台界面", () => {
     expect(layout.text()).not.toContain("已接入的会话区域");
     layout.unmount();
   });
+
   it("恢复网络错误阻止受保护内容并可通过按钮重试", async () => {
     localStorage.setItem(AUTH_TOKEN_KEY, "a".repeat(43));
     const fetch = vi

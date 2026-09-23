@@ -1,25 +1,4 @@
-# knowledge-documents Specification
-
-## Purpose
-
-为值班人员提供受认证和 tenant 约束的个人知识文档管理能力，并为后续索引保留稳定、可追溯的正文与元数据基础。
-
-## Requirements
-
-### Requirement: 隐式默认知识库与 owner-scoped 文档 API
-系统 MUST 为每个认证用户提供一个稳定的隐式默认知识库 ID，且不得提供创建或删除多个知识库的能力。系统 MUST 提供 `GET /knowledge-bases`、`GET/POST /knowledge-bases/{kb}/documents`、`GET/DELETE /knowledge-bases/{kb}/documents/{document}` 和 `GET /knowledge-bases/{kb}/documents/{document}/chunk-preview`；所有路径 MUST 从 `CurrentUser` 派生 owner scope。
-
-#### Scenario: 用户访问自己的默认知识库
-- **WHEN** 已认证用户请求 `GET /knowledge-bases`
-- **THEN** 返回仅包含该用户稳定默认知识库的 DTO，且其文档列表只包含该用户的文档
-
-#### Scenario: 跨用户访问知识库或文档
-- **WHEN** 用户使用其他用户的 `kb` 或 `document` 标识请求任一路径
-- **THEN** 返回统一 `AUTH_FORBIDDEN` 403，且不披露资源是否存在
-
-#### Scenario: 未认证访问
-- **WHEN** 请求缺少有效认证
-- **THEN** 返回合同定义的 401 错误
+## MODIFIED Requirements
 
 ### Requirement: 文件上传 policy 与正文保存
 系统 MUST 只接受 UTF-8 Markdown 和 PDF，单文件最大 10 MiB；后端 MUST 权威校验扩展名、MIME 和实际大小。Markdown 正文 MUST 按 UTF-8 解码，PDF MUST 提取文本。系统 MUST 保存文件名、size、MIME、SHA-256、uploadedAt、index status、实际 chunking config 和可索引正文，且不得把原文写入 MinIO。上传 API MUST 只创建文档，不隐式创建或入队索引任务；客户端成功后 MUST 显式调用索引任务 endpoint。客户端上传前 MUST 从共享 upload policy 过滤 `.md` 和 `.pdf` 并提示明显违反 policy 的文件；客户端选择 chunking strategy 后，multipart 的 `chunkingConfig` MUST 只带该 strategy 允许的字段。
@@ -50,10 +29,3 @@
 #### Scenario: 删除文档
 - **WHEN** 用户在确认对话中确认删除自己的文档
 - **THEN** 文档软删除且只清理对应 owner、KB 和 document scope 的向量，工作区刷新服务端列表并清理已选详情
-
-### Requirement: 文档 DTO 和可追溯索引元数据
-文档详情和列表 DTO MUST 返回稳定 document ID、原始文件名、size、MIME、SHA-256、uploadedAt、index status 以及实际采用的 chunking strategy 和参数；不得返回原文全文。index status MUST 使用 `pending`、`running`、`succeeded`、`failed`、`cancelled`。
-
-#### Scenario: 查询文档详情
-- **WHEN** 用户请求自己的文档详情
-- **THEN** 返回完整元数据和切分配置，不返回文件正文，且状态可反映索引任务最新持久状态

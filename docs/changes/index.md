@@ -13,6 +13,7 @@ title: OpenSpec 变更
 ## 已归档
 
 - [provide-reranked-hybrid-knowledge-retrieval](/changes/archive/2026-09-21-provide-reranked-hybrid-knowledge-retrieval/)
+- [build-knowledge-base-workspace](/changes/archive/2026-09-21-build-knowledge-base-workspace/)
 - [run-durable-document-indexing](/changes/archive/2026-09-15-run-durable-document-indexing/)
 - [manage-knowledge-documents-and-chunking](/changes/archive/2026-09-11-manage-knowledge-documents-and-chunking/)
 - [add-durable-background-job-runtime](/changes/archive/2026-09-10-add-durable-background-job-runtime/)

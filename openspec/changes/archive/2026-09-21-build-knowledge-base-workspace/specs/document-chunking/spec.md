@@ -1,25 +1,4 @@
-# document-chunking Specification
-
-## Purpose
-
-为文档预览和未来索引提供一个一致、可测试且有界的文本切分行为，确保保存的配置与产生的 chunk metadata 可追溯。
-
-## Requirements
-
-### Requirement: 统一切分入口与三种策略
-系统 MUST 通过同一个 `chunk_document_text` 行为入口支持 `fixed-character`、`markdown-heading` 和 `paragraph` 三种策略，预览和未来 indexing MUST 复用该入口。默认策略 MUST 是 `fixed-character`，默认 `maxCharacters=1200`、`overlap=200`。
-
-#### Scenario: fixed-character 切分
-- **WHEN** 使用 fixed-character 处理文本
-- **THEN** 按 maxCharacters 形成有序 chunk，并按 overlap 保留相邻上下文
-
-#### Scenario: markdown-heading 切分
-- **WHEN** 使用 markdown-heading 处理含 Markdown 标题的文本
-- **THEN** 按标题层级形成有序 chunk，并保留可追溯的标题 metadata
-
-#### Scenario: paragraph 切分
-- **WHEN** 使用 paragraph 处理文本
-- **THEN** 按段落形成有序 chunk，并保留 chunk 顺序 metadata
+## MODIFIED Requirements
 
 ### Requirement: 策略参数校验与持久化
 只有 fixed-character MUST 接受 `maxCharacters` 和 `overlap` 参数；fixed-character MUST 校验正数 maxCharacters 及 `overlap < maxCharacters`。其他策略传入这些参数 MUST 被拒绝。文档保存时 MUST 保存实际 strategy 和参数。工作区 MUST 显示 fixed-character 的长度和 overlap 输入，并在 markdown-heading、paragraph 请求中省略这两个字段。
